@@ -1,0 +1,3 @@
+(library
+ (name cryptography)
+ (libraries core))
