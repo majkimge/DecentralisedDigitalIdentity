@@ -2,4 +2,4 @@ open! Core
 
 type t
 
-val originated_in_master_provider : t -> bool
+val check_validity : t -> bool

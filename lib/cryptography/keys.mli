@@ -1,15 +1,12 @@
 open! Core
 
-module Public_key : sig
-  type t
-end
-
 module Private_key : sig
   type t
 end
 
-module Key_pair : sig
-  type t = { public_key : Public_key.t; private_key : Private_key.t }
+module Public_key : sig
+  type t
 end
 
-val generate_key_pair : unit -> Key_pair.t
+val generate_key : ?generator:Mirage_crypto_rng.g -> unit -> Private_key.t
+val public_key : Private_key.t -> Public_key.t

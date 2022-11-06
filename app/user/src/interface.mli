@@ -5,5 +5,3 @@ open! Core
    key pair. Otherwise generate the new account from the key-pair associated with the
    latest account, so all accounts can be recovered from one mnemonic. *)
 val create_account : unit -> unit
-
-val 
