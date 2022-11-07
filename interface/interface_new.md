@@ -1,9 +1,3 @@
-Anil, Patrick and Michał want to organise a supervision. To do so, everyone's university card has to grant access to Anil's office
-for the period of the supervision, and everyone has to be able to leave the premises independent of the time.
-As only Anil is a member of the Pembroke college, ha can provide Patrick and Michał with proofs that they are his guests for the time of 
-the supervision. The persmissions to enter can be granted to non-Pembroke members under the restriction that
-they can only access the parts of Pembroke necessery to get to the supervision area and teh supervisor will have to be present
-in that area for the duration of the supervision.
 
 ```ocaml
 
@@ -69,7 +63,7 @@ module Circumstance : sig
     val empty_circumstance : t
 end
 
-module type Authentication_system = sig
+module Authentication_system : sig
 
 
     type physical_token
@@ -98,6 +92,17 @@ module type Authentication_system = sig
     
   end
 
+  ```
+
+Anil, Patrick and Michał want to organise a supervision. To do so, everyone's university card has to grant access to Anil's office
+for the period of the supervision, and everyone has to be able to leave the premises independent of the time.
+As only Anil is a member of the Pembroke college, ha can provide Patrick and Michał with proofs that they are his guests for the time of 
+the supervision. The persmissions to enter can be granted to non-Pembroke members under the restriction that
+they can only access the parts of Pembroke necessery to get to the supervision area and teh supervisor will have to be present
+in that area for the duration of the supervision.
+
+  ```ocaml
+
   module Door_access (AS : Authentication_system) : sig
 
     type card_reader
@@ -124,10 +129,12 @@ module type Authentication_system = sig
     let door_locks = ...
 
     let card_reader_access_granter = 
-         AS.generate_kyp_granter AS.master_provider (Proof.singleton Proof.empty_proof) (Proof.singleton Proof.empty_proof)
+         AS.generate_kyp_granter ~provider:AS.master_provider ~provider_profs:(Proof.singleton Proof.empty_proof) ~circumstances_to_get_kyp:(Circumstance.singleton Circumstance.empty_circumstance) ~kyp_circumstances:(Circumstance.singleton Circumstance.empty_circumstance
     
 
-    let give_card_reader_lock_access card_reader door_lock = card_reader_access_granter card_reader (Proof.singleton)
+    let give_card_reader_lock_access card_reader door_lock = card_reader_access_granter ~providee:card_reader ~required_proofs:(Proof.singleton)
+
+
 
   end
 
@@ -152,8 +159,6 @@ module type Authentication_system = sig
   end = struct
 
   end
-
-  module 
 
 
 ```
