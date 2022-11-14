@@ -98,7 +98,7 @@ Anil, Patrick and Michał want to organise a supervision. To do so, everyone's u
 for the period of the supervision, and everyone has to be able to leave the premises independent of the time.
 As only Anil is a member of the Pembroke college, ha can provide Patrick and Michał with proofs that they are his guests for the time of 
 the supervision. The persmissions to enter can be granted to non-Pembroke members under the restriction that
-they can only access the parts of Pembroke necessery to get to the supervision area and teh supervisor will have to be present
+they can only access the parts of Pembroke necessery to get to the supervision area and the supervisor will have to be present
 in that area for the duration of the supervision.
 
   ```ocaml
