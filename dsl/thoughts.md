@@ -2,10 +2,31 @@
 
 As Pembroke I want to be able to write:
 
-Create Property X inside Property A. (Where Property A is also inside Pembroke. So I want to be able to create entities at
+Create  Anil's office inside Pembroke. (Where Property A is also inside Pembroke. So I want to be able to create entities at
 arbitrary points inside the subtree I represent. )
 
+```ocaml 
+
+let pembroke = create (Identifier.property "A" ) in
+let office = create (Identifier.property "X" ) in
+let cam = office @+> pembroke
+
+```
+
 Give Anil a proof that he is a fellow. (Whenever a proof of a permission is granted, DSL should remember that, so these can be suggested again.)
+
+```ocaml
+
+let michal = Id.person "Michał" in
+let anil = Id.person "Anil" in
+
+val fellow : Property Id.t -> Person Id.t -> Person Id.t
+
+let anil = fellow pembroke anil in 
+let michal = supervisee anil michal in
+let michal = student cam michal
+
+```
 
 Give Anil permission to access Anil's office if he is proven to be a fellow.
 
