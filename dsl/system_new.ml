@@ -58,35 +58,34 @@ module Position_tree = struct
 
   let splice_node ~root (type a) ~(node_to_splice : a Node.t ref) (type b)
       ~(parent : b Node.t) =
-    let rec splice_helper (current_node : t) visited_nodes =
-      let { node; children } = current_node in
+    let rec splice_helper (current_node : t ref) visited_nodes =
+      let { node; children } = !current_node in
       if
         List.exists !visited_nodes ~f:(fun visited_node ->
             any_node_equal visited_node node)
-      then current_node
+      then ()
       else if any_node_equal node (Any parent) then
-        {
-          current_node with
-          children =
-            ref
-              {
-                node = Any !node_to_splice;
-                children =
-                  (match !node_to_splice with
-                  | Operator _ -> []
-                  | _ -> [ ref current_node ]);
-              }
-            :: children;
-        }
+        current_node :=
+          {
+            !current_node with
+            children =
+              ref
+                {
+                  node = Any !node_to_splice;
+                  children =
+                    (match !node_to_splice with
+                    | Operator _ -> []
+                    | _ -> [ current_node ]);
+                }
+              :: children;
+          }
       else
         let () = visited_nodes := node :: !visited_nodes in
-        {
-          current_node with
-          children =
-            List.map current_node.children ~f:(fun child_ref ->
-                ref (splice_helper !child_ref visited_nodes));
-        }
+
+        List.iter !current_node.children ~f:(fun child_ref ->
+            splice_helper child_ref visited_nodes)
     in
+
     splice_helper root (ref [])
 
   let find_node t (type a) (node_to_find : a Node.t) =
@@ -245,49 +244,50 @@ type t = {
 
 let create operator_node =
   let root_node = Node.location "root" in
-  let root = { Position_tree.node = Any root_node; children = [] } in
-  let position_tree =
-    Position_tree.splice_node ~root ~node_to_splice:operator_node
+  let root = ref { Position_tree.node = Any root_node; children = [] } in
+
+  let () =
+    Position_tree.splice_node ~root ~node_to_splice:(ref operator_node)
       ~parent:root_node
   in
+
   let dag_root = { Permission_DAG.node = Any root_node; nodes_to = [] } in
   let dag_operator =
-    { Permission_DAG.node = Any !operator_node; nodes_to = [] }
+    { Permission_DAG.node = Any operator_node; nodes_to = [] }
   in
   let permission_dag =
     { Permission_DAG.operators = [ ref dag_operator ]; root = ref dag_root }
   in
-  Permission_DAG.add_edge permission_dag ~from:!operator_node ~to_:root_node;
-  { position_tree = ref position_tree; permission_dag }
+  Permission_DAG.add_edge permission_dag ~from:operator_node ~to_:root_node;
+  { position_tree = root; permission_dag }
 
 let add_location t location (type a) ~(parent : a Node.t) ~entrances =
   let { position_tree; permission_dag } = t in
   match entrances with
   | node :: tl ->
-      let position_tree =
-        Position_tree.splice_node ~root:!position_tree ~node_to_splice:location
-          ~parent:node
+      let () =
+        Position_tree.splice_node ~root:position_tree
+          ~node_to_splice:(ref location) ~parent:node
       in
       List.iter tl ~f:(fun entrance ->
-          Position_tree.add_edge (ref position_tree) !location entrance);
+          Position_tree.add_edge position_tree location entrance);
       let permission_dag =
-        Permission_DAG.add_dag_node permission_dag ~node_to_add:!location
-          ~parent
+        Permission_DAG.add_dag_node permission_dag ~node_to_add:location ~parent
       in
-      { position_tree = ref position_tree; permission_dag }
+      { position_tree; permission_dag }
   | _ -> t
 
 (* val add_organisation : t -> Node.organisation Node.t -> inside:'a Node.t -> t *)
 let add_operator t ~operator =
   let { position_tree; permission_dag } = t in
   let root_node = Node.location "root" in
-  let position_tree =
-    Position_tree.splice_node ~root:!position_tree ~node_to_splice:operator
+  let () =
+    Position_tree.splice_node ~root:position_tree ~node_to_splice:(ref operator)
       ~parent:root_node
   in
-  let permission_dag = Permission_DAG.add_operator permission_dag !operator in
-  Permission_DAG.add_edge permission_dag ~from:!operator ~to_:root_node;
-  { position_tree = ref position_tree; permission_dag }
+  let permission_dag = Permission_DAG.add_operator permission_dag operator in
+  Permission_DAG.add_edge permission_dag ~from:operator ~to_:root_node;
+  { position_tree; permission_dag }
 
 let root_node = Node.location "root"
 
