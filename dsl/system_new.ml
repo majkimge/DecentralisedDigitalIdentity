@@ -1,4 +1,5 @@
 open! Core
+open! Yojson
 
 module Node = struct
   type operator = string [@@deriving compare, equal, sexp_of]
@@ -28,6 +29,21 @@ module Node = struct
     | Attribute : attribute -> attribute t
   [@@deriving sexp_of]
 
+  let name (type a) (node : a t) =
+    match node with
+    | Operator operator -> operator
+    | Location location -> location
+    | Organisation organisation -> organisation
+    | Attribute { attribute_id = { maintainer; name }; _ } ->
+        String.concat ~sep:"#" [ maintainer; name ]
+
+  let type_string (type a) (node : a t) =
+    match node with
+    | Operator _ -> "operator"
+    | Location _ -> "location"
+    | Organisation _ -> "organisation"
+    | Attribute _ -> "attribute"
+
   let equal (type a) (node1 : a t) (type b) (node2 : b t) =
     match (node1, node2) with
     | Operator operator1, Operator operator2 ->
@@ -52,6 +68,39 @@ type any_node = Any : 'a Node.t -> any_node [@@deriving sexp_of]
 
 let any_node_equal node1 node2 =
   match (node1, node2) with Any node1, Any node2 -> Node.equal node1 node2
+
+let any_node_name node = match node with Any node -> Node.name node
+
+let any_node_type_string node =
+  match node with Any node -> Node.type_string node
+
+let any_is_maintainer node ~parent =
+  match (node, parent) with
+  | Any (Node.Attribute node), Any (Node.Operator parent) ->
+      let { Node.attribute_id = { maintainer; _ }; _ } = node in
+      String.equal maintainer parent
+  | _ -> false
+
+let any_node_id node count =
+  match node with
+  | Any node ->
+      if count = 0 then Node.name node
+      else String.concat ~sep:"#" [ Node.name node; Int.to_string count ]
+
+let any_to_json node count =
+  let group =
+    match count with 0 -> any_node_type_string node | _ -> "extension"
+  in
+  let id = any_node_id node count in
+  `Assoc [ ("id", `String id); ("group", `String group) ]
+
+type json_helper = { nodes : Yojson.t list; links : Yojson.t list }
+
+let json_helper_concat json_helpers =
+  List.fold json_helpers ~init:{ nodes = []; links = [] }
+    ~f:(fun acc json_helper ->
+      let { nodes; links } = acc in
+      { nodes = json_helper.nodes @ nodes; links = json_helper.links @ links })
 
 module Position_tree = struct
   type t = { node : any_node; children : t ref list } [@@deriving sexp_of]
@@ -137,6 +186,43 @@ module Position_tree = struct
         }
     in
     delete_helper root (ref [])
+
+  let to_json t =
+    let rec helper current_node parent visited =
+      let count =
+        match Map.find !visited (any_node_name current_node.node) with
+        | None -> 0
+        | Some n -> n
+      in
+      visited :=
+        Map.update !visited (any_node_name current_node.node) ~f:(fun value ->
+            match value with None -> 1 | Some n -> n + 1);
+      let { nodes; links } =
+        if count = 0 then
+          json_helper_concat
+            (List.map current_node.children ~f:(fun child ->
+                 helper !child current_node.node visited))
+        else { nodes = []; links = [] }
+      in
+      let links =
+        if any_node_equal current_node.node parent then links
+        else
+          let link_type =
+            if any_is_maintainer current_node.node ~parent then "maintainer"
+            else "simple"
+          in
+          `Assoc
+            [
+              ("source", `String (any_node_name parent));
+              ("target", `String (any_node_id current_node.node count));
+              ("type", `String link_type);
+            ]
+          :: links
+      in
+      { nodes = any_to_json current_node.node count :: nodes; links }
+    in
+    let { nodes; links } = helper t t.node (ref String.Map.empty) in
+    `Assoc [ ("nodes", `List nodes); ("links", `List links) ]
 end
 
 module Permission_DAG = struct
@@ -234,6 +320,45 @@ module Permission_DAG = struct
         from_ref := { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to }
     (* print_s [%sexp (!from_ref : dag_node)] *)
     | _ -> ()
+
+  let to_json t =
+    let rec helper current_node visited =
+      if
+        List.exists !visited ~f:(fun node ->
+            any_node_equal current_node.node node)
+      then { nodes = []; links = [] }
+      else
+        let () = visited := current_node.node :: !visited in
+        let { nodes; links } =
+          json_helper_concat
+            (List.map current_node.nodes_to ~f:(fun node_ref ->
+                 helper !node_ref visited))
+        in
+        {
+          nodes = any_to_json current_node.node 0 :: nodes;
+          links =
+            List.map current_node.nodes_to ~f:(fun node_ref ->
+                let link_type =
+                  if any_is_maintainer !node_ref.node ~parent:current_node.node
+                  then "maintainer"
+                  else "simple"
+                in
+                `Assoc
+                  [
+                    ("source", `String (any_node_name current_node.node));
+                    ("target", `String (any_node_name !node_ref.node));
+                    ("type", `String link_type);
+                  ])
+            @ links;
+        }
+    in
+    let visited = ref [] in
+    let { nodes; links } =
+      json_helper_concat
+        (helper !(t.root) visited
+        :: List.map t.operators ~f:(fun node_ref -> helper !node_ref visited))
+    in
+    `Assoc [ ("nodes", `List nodes); ("links", `List links) ]
 end
 
 type t = {
@@ -290,6 +415,13 @@ let add_operator t ~operator =
   { position_tree; permission_dag }
 
 let root_node = Node.location "root"
+
+let to_json t =
+  `Assoc
+    [
+      ("position_tree", Position_tree.to_json !(t.position_tree));
+      ("permission_dag", Permission_DAG.to_json t.permission_dag);
+    ]
 
 (* val splice_node : t -> node:Position_tree.t -> parent:'a Node.t -> t
    val routes : t -> Node.location Node.t -> Node.location Node.t list list
