@@ -87,10 +87,11 @@ let any_node_id node count =
       if count = 0 then Node.name node
       else String.concat ~sep:"#" [ Node.name node; Int.to_string count ]
 
+let any_node_group node count =
+  match count with 0 -> any_node_type_string node | _ -> "extension"
+
 let any_to_json node count =
-  let group =
-    match count with 0 -> any_node_type_string node | _ -> "extension"
-  in
+  let group = any_node_group node count in
   let id = any_node_id node count in
   `Assoc [ ("id", `String id); ("group", `String group) ]
 
@@ -223,6 +224,32 @@ module Position_tree = struct
     in
     let { nodes; links } = helper t t.node (ref String.Map.empty) in
     `Assoc [ ("nodes", `List nodes); ("links", `List links) ]
+
+  let _to_json_tree t =
+    let rec helper current_node visited =
+      let count =
+        match Map.find !visited (any_node_name current_node.node) with
+        | None -> 0
+        | Some n -> n
+      in
+      visited :=
+        Map.update !visited (any_node_name current_node.node) ~f:(fun value ->
+            match value with None -> 1 | Some n -> n + 1);
+      let children =
+        if count = 0 then
+          `List
+            (List.map current_node.children ~f:(fun child_ref ->
+                 helper !child_ref visited))
+        else `List []
+      in
+      `Assoc
+        [
+          ("id", `String (any_node_id current_node.node count));
+          ("children", children);
+          ("group", `String (any_node_group current_node.node count));
+        ]
+    in
+    helper t (ref String.Map.empty)
 end
 
 module Permission_DAG = struct

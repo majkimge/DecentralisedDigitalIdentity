@@ -65,3 +65,5 @@ val add_operator : t -> operator:Node.operator Node.t -> t
 
    val delete_permission : t -> from:'a Node.t -> to_:'a Node.t -> t
    val is_transition_valid : current_state:t -> new_state:t -> bool *)
+
+val to_json : t -> Yojson.t

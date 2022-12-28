@@ -20,4 +20,5 @@ let system =
        ~entrances:[ locationB ] *)
 ;;
 
-print_s [%sexp (system : System_new.t)]
+print_string (Yojson.to_string (System_new.to_json system));
+Yojson.to_file "system_rep" (System_new.to_json system)
