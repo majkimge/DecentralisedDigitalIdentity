@@ -11,16 +11,28 @@ module Node = struct
 
   let attribute_id maintainer name = { maintainer; name }
 
-  module Attribute_condition = struct
-    type t = Attribute_id of attribute_id | And of t * t | Or of t * t
-    [@@deriving compare, equal, sexp_of]
-  end
+  type attribute_condition =
+    | Attribute_required of attribute
+    | And of attribute_condition * attribute_condition
+    | Or of attribute_condition * attribute_condition
+  [@@deriving compare, equal, sexp_of]
 
-  type attribute = {
+  and attribute = {
     attribute_id : attribute_id;
-    attribute_condition : Attribute_condition.t;
+    attribute_condition : attribute_condition;
   }
   [@@deriving compare, equal, sexp_of]
+
+  let attributes_from_condition attribute_condition =
+    let rec helper condition result =
+      match condition with
+      | Attribute_required attribute -> attribute :: result
+      | And (condition1, condition2) | Or (condition1, condition2) ->
+          helper condition1 (helper condition2 result)
+    in
+    List.dedup_and_sort
+      (helper attribute_condition [])
+      ~compare:compare_attribute
 
   type _ t =
     | Operator : operator -> operator t
@@ -87,13 +99,17 @@ let any_node_id node count =
       if count = 0 then Node.name node
       else String.concat ~sep:"#" [ Node.name node; Int.to_string count ]
 
-let any_node_group node count =
-  match count with 0 -> any_node_type_string node | _ -> "extension"
+let any_node_is_extension count = match count with 0 -> false | _ -> true
 
 let any_to_json node count =
-  let group = any_node_group node count in
+  let group = any_node_type_string node in
   let id = any_node_id node count in
-  `Assoc [ ("id", `String id); ("group", `String group) ]
+  `Assoc
+    [
+      ("id", `String id);
+      ("group", `String group);
+      ("is_extension", `Bool (any_node_is_extension count));
+    ]
 
 type json_helper = { nodes : Yojson.t list; links : Yojson.t list }
 
@@ -246,14 +262,19 @@ module Position_tree = struct
         [
           ("id", `String (any_node_id current_node.node count));
           ("children", children);
-          ("group", `String (any_node_group current_node.node count));
+          ("group", `String (any_node_type_string current_node.node));
+          ("is_extension", `Bool (any_node_is_extension count));
         ]
     in
     helper t (ref String.Map.empty)
 end
 
 module Permission_DAG = struct
-  type dag_node = { node : any_node; nodes_to : dag_node ref list }
+  type dag_node = {
+    node : any_node;
+    nodes_to : dag_node ref list;
+    nodes_from : dag_node ref list;
+  }
   [@@deriving sexp_of]
   (* nodes_to which I am pointing, nodes_from which I am being pointed to *)
 
@@ -263,7 +284,9 @@ module Permission_DAG = struct
   let add_operator t (operator : Node.operator Node.t) =
     {
       t with
-      operators = ref { node = Any operator; nodes_to = [] } :: t.operators;
+      operators =
+        ref { node = Any operator; nodes_to = []; nodes_from = [] }
+        :: t.operators;
     }
 
   let add_dag_node t (type a) ~(node_to_add : a Node.t) (type b)
@@ -442,6 +465,33 @@ let add_operator t ~operator =
   { position_tree; permission_dag }
 
 let root_node = Node.location "root"
+
+let add_organisation t ~(organisation : Node.organisation Node.t) (type a)
+    ~(parent : a Node.t) =
+  let { position_tree; permission_dag } = t in
+  let () =
+    Position_tree.splice_node ~root:position_tree
+      ~node_to_splice:(ref organisation) ~parent:root_node
+  in
+  let permission_dag =
+    Permission_DAG.add_dag_node permission_dag ~node_to_add:organisation ~parent
+  in
+  { position_tree; permission_dag }
+
+let add_attribute t ~(attribute : Node.attribute Node.t) =
+  match attribute with
+  | Attribute { attribute_id = { maintainer; _ }; attribute_condition } ->
+      let { permission_dag; _ } = t in
+      let permission_dag =
+        Permission_DAG.add_dag_node permission_dag ~node_to_add:attribute
+          ~parent:(Node.operator maintainer)
+      in
+      Node.attributes_from_condition attribute_condition
+      |> List.map ~f:(fun condition_attribute ->
+             Node.Attribute condition_attribute)
+      |> List.iter ~f:(fun condition_node ->
+             Permission_DAG.add_edge permission_dag ~from:condition_node
+               ~to_:attribute)
 
 let to_json t =
   `Assoc
