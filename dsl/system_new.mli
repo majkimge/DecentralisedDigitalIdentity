@@ -5,12 +5,14 @@ module Node : sig
   type location [@@deriving sexp_of]
   type organisation [@@deriving sexp_of]
   type attribute_id [@@deriving sexp_of]
+
   type attribute [@@deriving sexp_of]
 
-  module Attribute_condition : sig
-    type t = Attribute_id of attribute_id | And of t * t | Or of t * t
-    [@@deriving sexp_of]
-  end
+  and attribute_condition =
+    | Attribute_required of attribute
+    | And of attribute_condition * attribute_condition
+    | Or of attribute_condition * attribute_condition
+  [@@deriving sexp_of]
 
   val attribute_id : operator -> string -> attribute_id
 
@@ -24,7 +26,7 @@ module Node : sig
   val location : string -> location t
   val operator : string -> operator t
   val organisation : string -> organisation t
-  val attribute : attribute_id -> Attribute_condition.t -> attribute t
+  val attribute : attribute_id -> attribute_condition -> attribute t
 end
 
 module Position_tree : sig
@@ -53,15 +55,33 @@ val add_location :
   entrances:Node.location Node.t list ->
   t
 
-(* val add_organisation : t -> Node.organisation Node.t -> inside:'a Node.t -> t *)
+val add_organisation :
+  t ->
+  maintainer:Node.operator Node.t ->
+  organisation:Node.organisation Node.t ->
+  parent:'a Node.t ->
+  t
+
 val add_operator : t -> operator:Node.operator Node.t -> t
+val add_attribute : t -> attribute:Node.attribute Node.t -> t
+
+val add_permission_edge :
+  t ->
+  operator:Node.operator Node.t ->
+  from:Node.operator Node.t ->
+  to_:'a Node.t ->
+  unit
+
+val delete_permission_edge :
+  t -> operator:Node.operator Node.t -> node:'a Node.t -> unit
+
+val move_operator : t -> operator:Node.operator Node.t -> to_:'a Node.t -> t
 (* val splice_node : t -> node:Position_tree.t -> parent:'a Node.t -> t
    val routes : t -> Node.location Node.t -> Node.location Node.t list list
    val delete_location : t -> Node.location Node.t -> t
    val add_permission_edge : t -> from:'a Node.t -> to_:'a Node.t -> t
 
-   val add_attribute :
-     t -> Node.attribute Node.t -> maintainer:Node.operator Node.t -> t
+
 
    val delete_permission : t -> from:'a Node.t -> to_:'a Node.t -> t
    val is_transition_valid : current_state:t -> new_state:t -> bool *)
