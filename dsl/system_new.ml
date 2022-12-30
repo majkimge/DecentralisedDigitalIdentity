@@ -9,9 +9,8 @@ module Node = struct
   type attribute_id = { maintainer : operator; name : string }
   [@@deriving compare, equal, sexp_of]
 
-  let attribute_id maintainer name = { maintainer; name }
-
   type attribute_condition =
+    | Empty
     | Attribute_required of attribute
     | And of attribute_condition * attribute_condition
     | Or of attribute_condition * attribute_condition
@@ -29,9 +28,19 @@ module Node = struct
 
      let attribute_condition_or cond1 cond2 = Or (cond1, cond2) *)
 
+  type _ t =
+    | Operator : operator -> operator t
+    | Location : location -> location t
+    | Organisation : organisation -> organisation t
+    | Attribute : attribute -> attribute t
+  [@@deriving sexp_of]
+
+  let attribute_id maintainer name = { maintainer; name }
+
   let attributes_from_condition attribute_condition =
     let rec helper condition result =
       match condition with
+      | Empty -> []
       | Attribute_required attribute -> attribute :: result
       | And (condition1, condition2) | Or (condition1, condition2) ->
           helper condition1 (helper condition2 result)
@@ -39,13 +48,6 @@ module Node = struct
     List.dedup_and_sort
       (helper attribute_condition [])
       ~compare:compare_attribute
-
-  type _ t =
-    | Operator : operator -> operator t
-    | Location : location -> location t
-    | Organisation : organisation -> organisation t
-    | Attribute : attribute -> attribute t
-  [@@deriving sexp_of]
 
   let name (type a) (node : a t) =
     match node with
@@ -491,7 +493,6 @@ module Permission_DAG = struct
     | Some from_ref, Some to_ref ->
         from_ref := { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to };
         to_ref := { !to_ref with nodes_from = from_ref :: !to_ref.nodes_to }
-    (* print_s [%sexp (!from_ref : dag_node)] *)
     | None, _ ->
         raise_s
           [%message
@@ -524,7 +525,6 @@ module Permission_DAG = struct
               List.filter !to_ref.nodes_from ~f:(fun node_ref ->
                   not (any_node_equal !node_ref.node !from_ref.node));
           }
-    (* print_s [%sexp (!from_ref : dag_node)] *)
     | None, _ ->
         raise_s
           [%message
@@ -571,6 +571,7 @@ module Permission_DAG = struct
       let met_conditions attribute_condition attributes_held =
         let rec met_conditions_helper condition =
           match condition with
+          | Node.Empty -> true
           | Node.Attribute_required attribute ->
               List.exists attributes_held ~f:(fun attribute_candidate ->
                   Node.equal (Attribute attribute) attribute_candidate)
@@ -678,7 +679,6 @@ let add_location t location (type a) ~(parent : a Node.t) ~entrances =
       { position_tree; permission_dag }
   | _ -> t
 
-(* val add_organisation : t -> Node.organisation Node.t -> inside:'a Node.t -> t *)
 let add_operator t ~operator =
   let { position_tree; permission_dag } = t in
   let root_node = Node.location "root" in
@@ -806,13 +806,7 @@ let to_json t =
       ("permission_dag", Permission_DAG.to_json t.permission_dag);
     ]
 
-(* val splice_node : t -> node:Position_tree.t -> parent:'a Node.t -> t
-   val routes : t -> Node.location Node.t -> Node.location Node.t list list
-   val delete_location : t -> Node.location Node.t -> t
-   val add_permission_edge : t -> from:'a Node.t -> to_:'a Node.t -> t
-
-   val add_attribute :
-     t -> Node.attribute Node.t -> maintainer:Node.operator Node.t -> t
-
-   val delete_permission : t -> from:'a Node.t -> to_:'a Node.t -> t
-   val is_transition_valid : current_state:t -> new_state:t -> bool *)
+(*
+    val routes : t -> Node.location Node.t -> Node.location Node.t list list
+    val delete_location : t -> Node.location Node.t -> t
+     *)

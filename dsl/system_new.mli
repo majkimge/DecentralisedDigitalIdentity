@@ -9,6 +9,7 @@ module Node : sig
   type attribute [@@deriving sexp_of]
 
   and attribute_condition =
+    | Empty
     | Attribute_required of attribute
     | And of attribute_condition * attribute_condition
     | Or of attribute_condition * attribute_condition
@@ -31,8 +32,6 @@ end
 
 module Position_tree : sig
   type t [@@deriving sexp_of]
-
-  (* val splice_node : root:t -> node:t -> parent:'a Node.t -> t *)
 end
 
 module Permission_DAG : sig
@@ -76,14 +75,9 @@ val delete_permission_edge :
   t -> operator:Node.operator Node.t -> node:'a Node.t -> unit
 
 val move_operator : t -> operator:Node.operator Node.t -> to_:'a Node.t -> t
-(* val splice_node : t -> node:Position_tree.t -> parent:'a Node.t -> t
-   val routes : t -> Node.location Node.t -> Node.location Node.t list list
-   val delete_location : t -> Node.location Node.t -> t
-   val add_permission_edge : t -> from:'a Node.t -> to_:'a Node.t -> t
-
-
-
-   val delete_permission : t -> from:'a Node.t -> to_:'a Node.t -> t
-   val is_transition_valid : current_state:t -> new_state:t -> bool *)
+(*
+    val routes : t -> Node.location Node.t -> Node.location Node.t list list
+    val delete_location : t -> Node.location Node.t -> t
+*)
 
 val to_json : t -> Yojson.t
