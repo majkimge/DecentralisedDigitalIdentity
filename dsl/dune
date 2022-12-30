@@ -2,4 +2,4 @@
  (name dsl)
  (libraries core yojson)
  (preprocess
-  (pps ppx_sexp_conv ppx_compare ppx_let ppx_jane)))
+  (pps ppx_sexp_conv ppx_compare ppx_let ppx_jane ppx_sexp_message)))

@@ -111,6 +111,9 @@ let any_to_json node count =
       ("is_extension", `Bool (any_node_is_extension count));
     ]
 
+exception Node_not_found
+exception No_Permission
+
 type json_helper = { nodes : Yojson.t list; links : Yojson.t list }
 
 let json_helper_concat json_helpers =
@@ -180,7 +183,18 @@ module Position_tree = struct
     | Some from_ref, Some to_ref ->
         from_ref := { !from_ref with children = to_ref :: !from_ref.children };
         to_ref := { !to_ref with children = from_ref :: !to_ref.children }
-    | _ -> ()
+    | None, _ ->
+        raise_s
+          [%message
+            "Could not find node in tree"
+              ~node:(Any from : any_node)
+              ~tree:(!t : t)]
+    | _, None ->
+        raise_s
+          [%message
+            "Could not find node in tree"
+              ~node:(Any to_ : any_node)
+              ~tree:(!t : t)]
 
   let _delete_node ~root (type a) ~(node_to_delete : a Node.t) =
     let rec delete_helper (current_node : t) visited_nodes =
@@ -303,35 +317,45 @@ module Permission_DAG = struct
                     {
                       !candidate with
                       nodes_to =
-                        ref { node = Any node_to_add; nodes_to = [] }
+                        ref
+                          {
+                            node = Any node_to_add;
+                            nodes_to = [];
+                            nodes_from = [ candidate ];
+                          }
                         :: !candidate.nodes_to;
                     }
                 else candidate);
         }
     | _ ->
         let rec add_helper current_node visited_nodes =
-          let { node; _ } = current_node in
+          let { node; _ } = !current_node in
           if
             List.exists !visited_nodes ~f:(fun visited_node ->
                 any_node_equal visited_node node)
-          then current_node
+          then !current_node
           else if any_node_equal node (Any parent) then
             {
-              current_node with
+              !current_node with
               nodes_to =
-                ref { node = Any node_to_add; nodes_to = [] }
-                :: current_node.nodes_to;
+                ref
+                  {
+                    node = Any node_to_add;
+                    nodes_to = [];
+                    nodes_from = [ current_node ];
+                  }
+                :: !current_node.nodes_to;
             }
           else
             let () = visited_nodes := node :: !visited_nodes in
             {
-              current_node with
+              !current_node with
               nodes_to =
-                List.map current_node.nodes_to ~f:(fun neighbour ->
-                    ref (add_helper !neighbour visited_nodes));
+                List.map !current_node.nodes_to ~f:(fun neighbour ->
+                    ref (add_helper neighbour visited_nodes));
             }
         in
-        { t with root = ref (add_helper !(t.root) (ref [])) }
+        { t with root = ref (add_helper t.root (ref [])) }
 
   let find_node t (type a) (node_to_find : a Node.t) =
     match node_to_find with
@@ -362,14 +386,171 @@ module Permission_DAG = struct
         in
         find_helper !(t.root) (ref [])
 
+  let find_attribute_by_id t attribute_id_to_find =
+    let rec find_helper current_node visited_nodes =
+      let { node; _ } = current_node in
+      if
+        List.exists !visited_nodes ~f:(fun visited_node ->
+            any_node_equal visited_node node)
+      then None
+      else
+        match node with
+        | Any (Attribute { attribute_id; _ }) ->
+            if Node.equal_attribute_id attribute_id attribute_id_to_find then
+              Some (ref current_node)
+            else
+              let () = visited_nodes := node :: !visited_nodes in
+              let results =
+                List.map current_node.nodes_to ~f:(fun node_ref ->
+                    find_helper !node_ref visited_nodes)
+              in
+              List.find results ~f:Option.is_some |> Option.join
+        | _ ->
+            let () = visited_nodes := node :: !visited_nodes in
+            let results =
+              List.map current_node.nodes_to ~f:(fun node_ref ->
+                  find_helper !node_ref visited_nodes)
+            in
+            List.find results ~f:Option.is_some |> Option.join
+    in
+    find_helper !(t.root) (ref [])
+
   let add_edge t (type a) ~(from : a Node.t) (type b) ~(to_ : b Node.t) =
     let from_ref = find_node t from in
     let to_ref = find_node t to_ in
     match (from_ref, to_ref) with
     | Some from_ref, Some to_ref ->
-        from_ref := { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to }
+        from_ref := { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to };
+        to_ref := { !to_ref with nodes_from = from_ref :: !to_ref.nodes_to }
     (* print_s [%sexp (!from_ref : dag_node)] *)
-    | _ -> ()
+    | None, _ ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any from : any_node)
+              ~dag:(t : t)]
+    | _, None ->
+        raise_s
+          [%message
+            "Could not find node in dag" ~node:(Any to_ : any_node) ~dag:(t : t)]
+
+  let delete_edge t (type a) ~(from : a Node.t) (type b) ~(to_ : b Node.t) =
+    let from_ref = find_node t from in
+    let to_ref = find_node t to_ in
+    match (from_ref, to_ref) with
+    | Some from_ref, Some to_ref ->
+        from_ref :=
+          {
+            !from_ref with
+            nodes_to =
+              List.filter !from_ref.nodes_to ~f:(fun node_ref ->
+                  not (any_node_equal !node_ref.node !to_ref.node));
+          };
+        to_ref :=
+          {
+            !to_ref with
+            nodes_from =
+              List.filter !to_ref.nodes_from ~f:(fun node_ref ->
+                  not (any_node_equal !node_ref.node !from_ref.node));
+          }
+    (* print_s [%sexp (!from_ref : dag_node)] *)
+    | None, _ ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any from : any_node)
+              ~dag:(t : t)]
+    | _, None ->
+        raise_s
+          [%message
+            "Could not find node in dag" ~node:(Any to_ : any_node) ~dag:(t : t)]
+
+  let governing_organisation_node t (type a) (node : a Node.t) =
+    let rec helper current_node =
+      match current_node.node with
+      | Any (Organisation organisation) -> Some (Node.Organisation organisation)
+      | Any (Location _) ->
+          let results =
+            List.map current_node.nodes_from ~f:(fun node_ref ->
+                helper !node_ref)
+          in
+          List.find results ~f:Option.is_some |> Option.join
+      | _ -> None
+    in
+    match find_node t node with
+    | Some node_ref ->
+        let results =
+          List.map !node_ref.nodes_from ~f:(fun node_ref -> helper !node_ref)
+        in
+        List.find results ~f:Option.is_some |> Option.join
+    | None ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any node_ : any_node)
+              ~dag:(t : t)]
+
+  (* Has permission to the attribute if the condition associated with
+      the attribute halts. Then can use that attribute to create
+     permission path to other nodes.*)
+  let rec has_permission t operator (type a) (node : a Node.t) =
+    let rec helper current_node attributes_held =
+      let met_conditions attribute_condition attributes_held =
+        let rec met_conditions_helper condition =
+          match condition with
+          | Node.Attribute_required attribute ->
+              List.exists attributes_held ~f:(fun attribute_candidate ->
+                  Node.equal (Attribute attribute) attribute_candidate)
+          | And (cond1, cond2) ->
+              met_conditions_helper cond1 && met_conditions_helper cond2
+          | Or (cond1, cond2) ->
+              met_conditions_helper cond1 || met_conditions_helper cond2
+        in
+        met_conditions_helper attribute_condition
+      in
+      match current_node.node with
+      | Any (Location _) | Any (Organisation _) ->
+          any_node_equal current_node.node (Any node)
+      | _ ->
+          let () =
+            attributes_held :=
+              match current_node.node with
+              | Any (Attribute attribute) ->
+                  Node.Attribute attribute :: !attributes_held
+              | _ -> !attributes_held
+          in
+          let in_operator =
+            match current_node.node with Any (Operator _) -> true | _ -> false
+          in
+          List.map current_node.nodes_to ~f:(fun node_ref ->
+              if in_operator then helper !node_ref attributes_held
+              else
+                match !node_ref.node with
+                | Any (Attribute { attribute_condition; _ }) ->
+                    if met_conditions attribute_condition !attributes_held then
+                      helper !node_ref attributes_held
+                    else false
+                | _ -> helper !node_ref attributes_held)
+          |> List.exists ~f:(fun res -> res)
+    in
+    match find_node t operator with
+    | Some operator_ref -> helper !operator_ref (ref [])
+    | None ->
+        raise_s
+          [%message
+            "Could not find operator in dag"
+              ~operator:(Any operator : any_node)
+              ~dag:(t : t)]
+
+  let can_add_permission_edge_to t operator (type a) (node : a Node.t) =
+    match node with
+    | Node.Operator _ -> false
+    | Organisation _ | Location _ -> (
+        match governing_organisation_node t node with
+        | Some node -> has_permission t operator node
+        | None -> false)
+    | Attribute { attribute_id = { maintainer; _ }; _ } ->
+        Node.equal (Operator maintainer) operator
 
   let to_json t =
     let rec helper current_node visited =
@@ -426,9 +607,11 @@ let create operator_node =
       ~parent:root_node
   in
 
-  let dag_root = { Permission_DAG.node = Any root_node; nodes_to = [] } in
+  let dag_root =
+    { Permission_DAG.node = Any root_node; nodes_to = []; nodes_from = [] }
+  in
   let dag_operator =
-    { Permission_DAG.node = Any operator_node; nodes_to = [] }
+    { Permission_DAG.node = Any operator_node; nodes_to = []; nodes_from = [] }
   in
   let permission_dag =
     { Permission_DAG.operators = [ ref dag_operator ]; root = ref dag_root }
