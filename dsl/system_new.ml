@@ -5,12 +5,11 @@ module Node = struct
   type operator = string [@@deriving compare, equal, sexp_of]
   type location = string [@@deriving compare, equal, sexp_of]
   type organisation = string [@@deriving compare, equal, sexp_of]
-
-  type attribute_id = { maintainer : operator; name : string }
-  [@@deriving compare, equal, sexp_of]
+  type attribute_id = string [@@deriving compare, equal, sexp_of]
 
   type attribute_condition =
-    | Empty
+    | Always
+    | Never
     | Attribute_required of attribute
     | And of attribute_condition * attribute_condition
     | Or of attribute_condition * attribute_condition
@@ -19,6 +18,11 @@ module Node = struct
   and attribute = {
     attribute_id : attribute_id;
     attribute_condition : attribute_condition;
+  }
+
+  and attribute_maintainer = {
+    attribute_maintainer_id : attribute_id;
+    attribute_maintainer_condition : attribute_condition;
   }
   [@@deriving compare, equal, sexp_of]
 
@@ -32,15 +36,14 @@ module Node = struct
     | Operator : operator -> operator t
     | Location : location -> location t
     | Organisation : organisation -> organisation t
+    | Attribute_maintainer : attribute_maintainer -> attribute_maintainer t
     | Attribute : attribute -> attribute t
   [@@deriving sexp_of]
-
-  let attribute_id maintainer name = { maintainer; name }
 
   let attributes_from_condition attribute_condition =
     let rec helper condition result =
       match condition with
-      | Empty -> []
+      | Always | Never -> []
       | Attribute_required attribute -> attribute :: result
       | And (condition1, condition2) | Or (condition1, condition2) ->
           helper condition1 (helper condition2 result)
@@ -54,8 +57,9 @@ module Node = struct
     | Operator operator -> operator
     | Location location -> location
     | Organisation organisation -> organisation
-    | Attribute { attribute_id = { maintainer; name }; _ } ->
-        String.concat ~sep:"#" [ maintainer; name ]
+    | Attribute { attribute_id; _ } -> attribute_id
+    | Attribute_maintainer { attribute_maintainer_id; _ } ->
+        attribute_maintainer_id
 
   let type_string (type a) (node : a t) =
     match node with
@@ -63,6 +67,7 @@ module Node = struct
     | Location _ -> "location"
     | Organisation _ -> "organisation"
     | Attribute _ -> "attribute"
+    | Attribute_maintainer _ -> "attribute_maintainer"
 
   let equal (type a) (node1 : a t) (type b) (node2 : b t) =
     match (node1, node2) with
@@ -74,6 +79,9 @@ module Node = struct
         equal_organisation organisation1 organisation2
     | Attribute attribute1, Attribute attribute2 ->
         equal_attribute attribute1 attribute2
+    | ( Attribute_maintainer attribute_maintainer1,
+        Attribute_maintainer attribute_maintainer2 ) ->
+        equal_attribute_maintainer attribute_maintainer1 attribute_maintainer2
     | _, _ -> false
 
   let location name = Location name
@@ -82,6 +90,11 @@ module Node = struct
 
   let attribute attribute_id attribute_condition =
     Attribute { attribute_id; attribute_condition }
+
+  let attribute_maintainer attribute_maintainer_id
+      attribute_maintainer_condition =
+    Attribute_maintainer
+      { attribute_maintainer_id; attribute_maintainer_condition }
 end
 
 type any_node = Any : 'a Node.t -> any_node [@@deriving sexp_of]
@@ -94,12 +107,12 @@ let any_node_name node = match node with Any node -> Node.name node
 let any_node_type_string node =
   match node with Any node -> Node.type_string node
 
-let any_is_maintainer node ~parent =
-  match (node, parent) with
-  | Any (Node.Attribute node), Any (Node.Operator parent) ->
-      let { Node.attribute_id = { maintainer; _ }; _ } = node in
-      String.equal maintainer parent
-  | _ -> false
+(* let any_is_maintainer node ~parent =
+   match (node, parent) with
+   | Any (Node.Attribute node), Any (Node.Operator parent) ->
+       let { Node.attribute_id = { maintainer; _ }; _ } = node in
+       String.equal maintainer parent
+   | _ -> false *)
 
 let any_node_id node count =
   match node with
@@ -152,10 +165,7 @@ module Position_tree = struct
           in
           let new_node = any_to_json current_node.node count in
           let new_link =
-            let link_type =
-              if any_is_maintainer current_node.node ~parent then "maintainer"
-              else "simple"
-            in
+            let link_type = "simple" in
             `Assoc
               [
                 ("source", `String (any_node_name parent));
@@ -342,11 +352,7 @@ module Permission_DAG = struct
           nodes = any_to_json current_node.node 0 :: nodes;
           links =
             List.map current_node.nodes_to ~f:(fun node_ref ->
-                let link_type =
-                  if any_is_maintainer !node_ref.node ~parent:current_node.node
-                  then "maintainer"
-                  else "simple"
-                in
+                let link_type = "simple" in
                 `Assoc
                   [
                     ("source", `String (any_node_name current_node.node));
@@ -426,65 +432,85 @@ module Permission_DAG = struct
                     ref (add_helper neighbour visited_nodes));
             }
         in
-        { t with root = ref (add_helper t.root (ref [])) }
-
-  let find_node t (type a) (node_to_find : a Node.t) =
-    match node_to_find with
-    | Operator _ ->
-        let open Option.Let_syntax in
-        let%map found =
-          List.find t.operators ~f:(fun operator ->
-              let { node; _ } = !operator in
-              any_node_equal node (Any node_to_find))
+        let visited = ref [] in
+        let root = ref (add_helper t.root visited) in
+        let operators =
+          List.map t.operators ~f:(fun operator_ref ->
+              ref (add_helper operator_ref visited))
         in
-        found
-    | _ ->
-        let rec find_helper current_node visited_nodes =
-          let { node; _ } = current_node in
-          if
-            List.exists !visited_nodes ~f:(fun visited_node ->
-                any_node_equal visited_node node)
-          then None
-          else if any_node_equal node (Any node_to_find) then
-            Some (ref current_node)
-          else
-            let () = visited_nodes := node :: !visited_nodes in
-            let results =
-              List.map current_node.nodes_to ~f:(fun node_ref ->
-                  find_helper !node_ref visited_nodes)
-            in
-            List.find results ~f:Option.is_some |> Option.join
-        in
-        find_helper !(t.root) (ref [])
+        { root; operators }
 
-  let _find_attribute_by_id t attribute_id_to_find =
+  let find t ~f =
     let rec find_helper current_node visited_nodes =
-      let { node; _ } = current_node in
+      let { node; _ } = !current_node in
       if
         List.exists !visited_nodes ~f:(fun visited_node ->
             any_node_equal visited_node node)
       then None
+      else if f current_node then Some current_node
       else
-        match node with
-        | Any (Attribute { attribute_id; _ }) ->
-            if Node.equal_attribute_id attribute_id attribute_id_to_find then
-              Some (ref current_node)
-            else
-              let () = visited_nodes := node :: !visited_nodes in
-              let results =
-                List.map current_node.nodes_to ~f:(fun node_ref ->
-                    find_helper !node_ref visited_nodes)
-              in
-              List.find results ~f:Option.is_some |> Option.join
-        | _ ->
-            let () = visited_nodes := node :: !visited_nodes in
-            let results =
-              List.map current_node.nodes_to ~f:(fun node_ref ->
-                  find_helper !node_ref visited_nodes)
-            in
-            List.find results ~f:Option.is_some |> Option.join
+        let () = visited_nodes := node :: !visited_nodes in
+        let results =
+          List.map !current_node.nodes_to ~f:(fun node_ref ->
+              find_helper node_ref visited_nodes)
+        in
+        List.find results ~f:Option.is_some |> Option.join
     in
-    find_helper !(t.root) (ref [])
+    let visited_nodes = ref [] in
+    let results =
+      List.map (!t.root :: !t.operators) ~f:(fun node_ref ->
+          find_helper node_ref visited_nodes)
+    in
+    List.find results ~f:Option.is_some |> Option.join
+
+  let find_node t (type a) (node_to_find : a Node.t) =
+    find t ~f:(fun node -> any_node_equal !node.node (Any node_to_find))
+
+  let find_attribute_by_id t attribute_id_to_find =
+    find t ~f:(fun node ->
+        match !node.node with
+        | Any (Node.Attribute { attribute_id; _ }) ->
+            Node.equal_attribute_id attribute_id attribute_id_to_find
+        | _ -> false)
+
+  let find_attribute_maintainer_by_id t attribute_maintainer_id_to_find =
+    find t ~f:(fun node ->
+        match !node.node with
+        | Any (Node.Attribute_maintainer { attribute_maintainer_id; _ }) ->
+            Node.equal_attribute_id attribute_maintainer_id
+              attribute_maintainer_id_to_find
+        | _ -> false)
+
+  (* let _find_attribute_by_id t attribute_id_to_find =
+     let rec find_helper current_node visited_nodes =
+       let { node; _ } = current_node in
+       if
+         List.exists !visited_nodes ~f:(fun visited_node ->
+             any_node_equal visited_node node)
+       then None
+       else
+         match node with
+         | Any
+             ( Attribute { attribute_id; _ }
+             | Any (Attribute_maintainer { attribute_maintainer_id; _ }) ) ->
+             if Node.equal_attribute_id attribute_id attribute_id_to_find then
+               Some (ref current_node)
+             else
+               let () = visited_nodes := node :: !visited_nodes in
+               let results =
+                 List.map current_node.nodes_to ~f:(fun node_ref ->
+                     find_helper !node_ref visited_nodes)
+               in
+               List.find results ~f:Option.is_some |> Option.join
+         | _ ->
+             let () = visited_nodes := node :: !visited_nodes in
+             let results =
+               List.map current_node.nodes_to ~f:(fun node_ref ->
+                   find_helper !node_ref visited_nodes)
+             in
+             List.find results ~f:Option.is_some |> Option.join
+     in
+     find_helper !(t.root) (ref []) *)
 
   let add_edge t (type a) ~(from : a Node.t) (type b) ~(to_ : b Node.t) =
     let from_ref = find_node t from in
@@ -498,13 +524,13 @@ module Permission_DAG = struct
           [%message
             "Could not find node in dag"
               ~node:(Any from : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
     | _, None ->
         raise_s
           [%message
             "Could not find node in dag"
               ~node:(Any to_ : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
 
   let delete_edge t (type a) ~(from : a Node.t) (type b) ~(to_ : b Node.t) =
     let from_ref = find_node t from in
@@ -530,13 +556,48 @@ module Permission_DAG = struct
           [%message
             "Could not find node in dag"
               ~node:(Any from : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
     | _, None ->
         raise_s
           [%message
             "Could not find node in dag"
               ~node:(Any to_ : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
+
+  let attribute_maintainer_of_attribute t (attribute : Node.attribute Node.t) =
+    let dag_node = find_attribute_by_id t (Node.name attribute) in
+    match dag_node with
+    | Some dag_node ->
+        List.find_map !dag_node.nodes_from ~f:(fun parent_ref ->
+            match !parent_ref.node with
+            | Any (Node.Attribute_maintainer attribute_maintainer) ->
+                Some (Node.Attribute_maintainer attribute_maintainer)
+            | _ -> None)
+    | None ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any attribute : any_node)
+              ~dag:(to_string !t : string)]
+
+  let attribute_maintainer_of_attribute_maintainer t
+      (attribute_maintainer : Node.attribute_maintainer Node.t) =
+    let dag_node =
+      find_attribute_maintainer_by_id t (Node.name attribute_maintainer)
+    in
+    match dag_node with
+    | Some dag_node ->
+        List.find_map !dag_node.nodes_from ~f:(fun parent_ref ->
+            match !parent_ref.node with
+            | Any (Node.Attribute_maintainer attribute_maintainer) ->
+                Some (Node.Attribute_maintainer attribute_maintainer)
+            | _ -> None)
+    | None ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any attribute_maintainer : any_node)
+              ~dag:(to_string !t : string)]
 
   let governing_organisation_node t (type a) (node : a Node.t) =
     let rec helper current_node =
@@ -561,17 +622,21 @@ module Permission_DAG = struct
           [%message
             "Could not find node in dag"
               ~node:(Any node : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
 
   (* Has permission to the attribute if the condition associated with
       the attribute halts. Then can use that attribute to create
-     permission path to other nodes.*)
-  let has_permission t operator (type a) (node : a Node.t) =
+     permission path to other nodes. Even if we control the attribute_maintainer of
+      some attribute, we do not assume we have the permission to that attribute.
+     Similarly to like in file permissions owner might not have some permission despite
+     being able to grant it to themselves. *)
+  let has_permission t ~operator (type a) (node : a Node.t) =
     let rec helper current_node attributes_held =
       let met_conditions attribute_condition attributes_held =
         let rec met_conditions_helper condition =
           match condition with
-          | Node.Empty -> true
+          | Node.Always -> true
+          | Node.Never -> false
           | Node.Attribute_required attribute ->
               List.exists attributes_held ~f:(fun attribute_candidate ->
                   Node.equal (Attribute attribute) attribute_candidate)
@@ -583,29 +648,42 @@ module Permission_DAG = struct
         met_conditions_helper attribute_condition
       in
       match current_node.node with
-      | Any (Location _) | Any (Organisation _) ->
+      | Any (Location _) | Any (Organisation _) | Any (Attribute_maintainer _)
+        ->
           any_node_equal current_node.node (Any node)
       | _ ->
-          let () =
-            attributes_held :=
+          if any_node_equal current_node.node (Any node) then true
+          else
+            let () =
+              attributes_held :=
+                match current_node.node with
+                | Any (Attribute attribute) ->
+                    Node.Attribute attribute :: !attributes_held
+                | _ -> !attributes_held
+            in
+            let in_operator =
               match current_node.node with
-              | Any (Attribute attribute) ->
-                  Node.Attribute attribute :: !attributes_held
-              | _ -> !attributes_held
-          in
-          let in_operator =
-            match current_node.node with Any (Operator _) -> true | _ -> false
-          in
-          List.map current_node.nodes_to ~f:(fun node_ref ->
-              if in_operator then helper !node_ref attributes_held
-              else
-                match !node_ref.node with
-                | Any (Attribute { attribute_condition; _ }) ->
-                    if met_conditions attribute_condition !attributes_held then
-                      helper !node_ref attributes_held
-                    else false
-                | _ -> helper !node_ref attributes_held)
-          |> List.exists ~f:(fun res -> res)
+              | Any (Operator _) -> true
+              | _ -> false
+            in
+            List.map current_node.nodes_to ~f:(fun node_ref ->
+                if in_operator then helper !node_ref attributes_held
+                else
+                  match !node_ref.node with
+                  | Any (Attribute { attribute_condition; _ }) ->
+                      if met_conditions attribute_condition !attributes_held
+                      then helper !node_ref attributes_held
+                      else false
+                  | Any
+                      (Attribute_maintainer
+                        { attribute_maintainer_condition; _ }) ->
+                      if
+                        met_conditions attribute_maintainer_condition
+                          !attributes_held
+                      then helper !node_ref attributes_held
+                      else false
+                  | _ -> helper !node_ref attributes_held)
+            |> List.exists ~f:(fun res -> res)
     in
     match find_node t operator with
     | Some operator_ref -> helper !operator_ref (ref [])
@@ -614,7 +692,7 @@ module Permission_DAG = struct
           [%message
             "Could not find operator in dag"
               ~operator:(Any operator : any_node)
-              ~dag:(to_string t : string)]
+              ~dag:(to_string !t : string)]
 
   let can_add_permission_edge_to t (operator : Node.operator Node.t) (type a)
       (node : a Node.t) =
@@ -622,18 +700,41 @@ module Permission_DAG = struct
     | Node.Operator _ -> false
     | Organisation _ | Location _ -> (
         match governing_organisation_node t node with
-        | Some node -> has_permission t operator node
+        | Some node -> has_permission t ~operator node
         | None -> false)
-    | Attribute { attribute_id = { maintainer; _ }; _ } ->
-        Node.equal (Operator maintainer) operator
+    | Attribute _ -> (
+        let attribute_maintainer = attribute_maintainer_of_attribute t node in
+        match attribute_maintainer with
+        | Some attribute_maintainer ->
+            has_permission t ~operator attribute_maintainer
+        | None ->
+            raise_s
+              [%message
+                "Could not find attribute maintainer"
+                  ~attribute:(Any node : any_node)
+                  ~dag:(to_string !t : string)])
+    | Attribute_maintainer _ -> (
+        let attribute_maintainer =
+          attribute_maintainer_of_attribute_maintainer t node
+        in
+        match attribute_maintainer with
+        | Some attribute_maintainer ->
+            has_permission t ~operator attribute_maintainer
+        | None ->
+            raise_s
+              [%message
+                "Could not find attribute maintainer"
+                  ~attribute:(Any node : any_node)
+                  ~dag:(to_string !t : string)])
 
   let _can_be_under t ~(operator : Node.operator Node.t) (type a)
       ~(node : a Node.t) =
     match node with
-    | Operator _ | Attribute _ -> false
+    | Operator _ | Attribute _ | Attribute_maintainer _ -> false
     | Organisation _ -> true
     | Location _ ->
-        Node.equal (Node.location "root") node || has_permission t operator node
+        Node.equal (Node.location "root") node
+        || has_permission t ~operator node
 end
 
 type t = {
@@ -660,7 +761,8 @@ let create operator_node =
   let permission_dag =
     { Permission_DAG.operators = [ ref dag_operator ]; root = ref dag_root }
   in
-  Permission_DAG.add_edge permission_dag ~from:operator_node ~to_:root_node;
+  Permission_DAG.add_edge (ref permission_dag) ~from:operator_node
+    ~to_:root_node;
   { position_tree = root; permission_dag }
 
 let add_location t location (type a) ~(parent : a Node.t) ~entrances =
@@ -687,7 +789,7 @@ let add_operator t ~operator =
       ~parent:root_node
   in
   let permission_dag = Permission_DAG.add_operator permission_dag operator in
-  Permission_DAG.add_edge permission_dag ~from:operator ~to_:root_node;
+  Permission_DAG.add_edge (ref permission_dag) ~from:operator ~to_:root_node;
   { position_tree; permission_dag }
 
 let root_node = Node.location "root"
@@ -698,46 +800,79 @@ let add_organisation t ~(maintainer : Node.operator Node.t)
   let permission_dag =
     Permission_DAG.add_dag_node permission_dag ~node_to_add:organisation ~parent
   in
-  Permission_DAG.add_edge permission_dag ~from:maintainer ~to_:organisation;
+  Permission_DAG.add_edge (ref permission_dag) ~from:maintainer
+    ~to_:organisation;
   { position_tree; permission_dag }
 
-let add_attribute t ~(attribute : Node.attribute Node.t) =
+let add_attribute t ~(attribute : Node.attribute Node.t)
+    ~(attribute_maintainer : Node.attribute_maintainer Node.t) =
   match attribute with
-  | Attribute { attribute_id = { maintainer; _ }; attribute_condition } ->
+  | Attribute { attribute_condition; _ } ->
       let { permission_dag; _ } = t in
       let permission_dag =
         Permission_DAG.add_dag_node permission_dag ~node_to_add:attribute
-          ~parent:(Node.operator maintainer)
+          ~parent:attribute_maintainer
       in
       Node.attributes_from_condition attribute_condition
       |> List.map ~f:(fun condition_attribute ->
              Node.Attribute condition_attribute)
       |> List.iter ~f:(fun condition_node ->
-             Permission_DAG.add_edge permission_dag ~from:condition_node
+             Permission_DAG.add_edge (ref permission_dag) ~from:condition_node
                ~to_:attribute);
       { t with permission_dag }
 
-let add_permission_edge t ~operator ~from ~to_ =
+let add_attribute_maintainer_under_node t
+    ~(attribute_maintainer : Node.attribute_maintainer Node.t) (type a)
+    ~(node : a Node.t) =
+  match attribute_maintainer with
+  | Attribute_maintainer { attribute_maintainer_condition; _ } ->
+      let { permission_dag; _ } = t in
+      let permission_dag =
+        Permission_DAG.add_dag_node permission_dag
+          ~node_to_add:attribute_maintainer ~parent:node
+      in
+      Node.attributes_from_condition attribute_maintainer_condition
+      |> List.map ~f:(fun condition_attribute ->
+             Node.Attribute condition_attribute)
+      |> List.iter ~f:(fun condition_node ->
+             Permission_DAG.add_edge (ref permission_dag) ~from:condition_node
+               ~to_:attribute_maintainer);
+      { t with permission_dag }
+
+let add_attribute_maintainer_under_operator t
+    ~(attribute_maintainer : Node.attribute_maintainer Node.t)
+    ~(operator : Node.operator Node.t) =
+  add_attribute_maintainer_under_node t ~attribute_maintainer ~node:operator
+
+let add_attribute_maintainer_under_maintainer t
+    ~(attribute_maintainer : Node.attribute_maintainer Node.t)
+    ~(attribute_maintainer_maintainer : Node.attribute_maintainer Node.t) =
+  add_attribute_maintainer_under_node t ~attribute_maintainer
+    ~node:attribute_maintainer_maintainer
+
+let add_permission_edge t ~operator (type a) ~(from : a Node.t) (type b)
+    ~(to_ : b Node.t) =
   let { permission_dag; _ } = t in
   match
-    Permission_DAG.can_add_permission_edge_to permission_dag operator to_
+    Permission_DAG.can_add_permission_edge_to (ref permission_dag) operator to_
   with
-  | true -> Permission_DAG.add_edge permission_dag ~from ~to_
+  | true -> Permission_DAG.add_edge (ref permission_dag) ~from ~to_
   | false ->
       raise_s
         [%message
           "No permission to add edge"
             ~permission_dag:(Permission_DAG.to_string permission_dag : string)
             (operator : Node.operator Node.t)
-            (from : Node.operator Node.t)
+            ~from:(Any from : any_node)
             ~to_:(Any to_ : any_node)]
 
 let delete_permission_edge t ~operator ~node =
   let { permission_dag; _ } = t in
   match
-    Permission_DAG.can_add_permission_edge_to permission_dag operator node
+    Permission_DAG.can_add_permission_edge_to (ref permission_dag) operator node
   with
-  | true -> Permission_DAG.delete_edge permission_dag ~from:operator ~to_:node
+  | true ->
+      Permission_DAG.delete_edge (ref permission_dag) ~from:operator ~to_:node
   | false ->
       raise_s
         [%message
@@ -762,7 +897,7 @@ let can_access t ~operator ~node =
             | Any (Operator _) -> helper !child_ref visited
             | Any (Location location) ->
                 if
-                  Permission_DAG.has_permission permission_dag operator
+                  Permission_DAG.has_permission (ref permission_dag) ~operator
                     (Location location)
                 then helper !child_ref visited
                 else false

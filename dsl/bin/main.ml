@@ -33,8 +33,21 @@ let system =
 
 let system = System_new.add_operator system ~operator:anil
 
+let fellow_attribute_maintainer =
+  System_new.Node.attribute_maintainer "Fellow_maintainer" System_new.Node.Never
+
+let fellow_attribute = System_new.Node.attribute "Fellow" System_new.Node.Never
+
+let system =
+  System_new.add_attribute_maintainer_under_operator system
+    ~attribute_maintainer:fellow_attribute_maintainer ~operator:admin
+
+let system =
+  System_new.add_attribute system ~attribute:fellow_attribute
+    ~attribute_maintainer:fellow_attribute_maintainer
+
 let () =
-  System_new.add_permission_edge system ~operator:admin ~from:anil
+  System_new.add_permission_edge system ~operator:admin ~from:fellow_attribute
     ~to_:locationB
 
 let () =
@@ -44,6 +57,10 @@ let () =
 let () =
   System_new.add_permission_edge system ~operator:admin ~from:anil
     ~to_:main_site
+
+let () =
+  System_new.add_permission_edge system ~operator:admin ~from:anil
+    ~to_:fellow_attribute
 
 let system = System_new.move_operator system ~operator:anil ~to_:locationB;;
 

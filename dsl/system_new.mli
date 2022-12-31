@@ -9,25 +9,34 @@ module Node : sig
   type attribute [@@deriving sexp_of]
 
   and attribute_condition =
-    | Empty
+    | Always
+    | Never
     | Attribute_required of attribute
     | And of attribute_condition * attribute_condition
     | Or of attribute_condition * attribute_condition
   [@@deriving sexp_of]
 
-  val attribute_id : operator -> string -> attribute_id
+  and attribute_maintainer = {
+    attribute_maintainer_id : attribute_id;
+    attribute_maintainer_condition : attribute_condition;
+  }
+  [@@deriving compare, equal, sexp_of]
 
   type _ t =
     | Operator : operator -> operator t
     | Location : location -> location t
     | Organisation : organisation -> organisation t
+    | Attribute_maintainer : attribute_maintainer -> attribute_maintainer t
     | Attribute : attribute -> attribute t
   [@@deriving sexp_of]
 
   val location : string -> location t
   val operator : string -> operator t
   val organisation : string -> organisation t
-  val attribute : attribute_id -> attribute_condition -> attribute t
+  val attribute : string -> attribute_condition -> attribute t
+
+  val attribute_maintainer :
+    string -> attribute_condition -> attribute_maintainer t
 end
 
 module Position_tree : sig
@@ -62,14 +71,27 @@ val add_organisation :
   t
 
 val add_operator : t -> operator:Node.operator Node.t -> t
-val add_attribute : t -> attribute:Node.attribute Node.t -> t
+
+val add_attribute :
+  t ->
+  attribute:Node.attribute Node.t ->
+  attribute_maintainer:Node.attribute_maintainer Node.t ->
+  t
+
+val add_attribute_maintainer_under_operator :
+  t ->
+  attribute_maintainer:Node.attribute_maintainer Node.t ->
+  operator:Node.operator Node.t ->
+  t
+
+val add_attribute_maintainer_under_maintainer :
+  t ->
+  attribute_maintainer:Node.attribute_maintainer Node.t ->
+  attribute_maintainer_maintainer:Node.attribute_maintainer Node.t ->
+  t
 
 val add_permission_edge :
-  t ->
-  operator:Node.operator Node.t ->
-  from:Node.operator Node.t ->
-  to_:'a Node.t ->
-  unit
+  t -> operator:Node.operator Node.t -> from:'a Node.t -> to_:'b Node.t -> unit
 
 val delete_permission_edge :
   t -> operator:Node.operator Node.t -> node:'a Node.t -> unit

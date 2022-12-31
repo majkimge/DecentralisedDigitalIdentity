@@ -87,6 +87,12 @@ export function ForceGraph({
     .attr("r", nodeRadius)
     .call(drag(simulation));
 
+
+  node.append("text")
+    .attr("dx", 12)
+    .attr("dy", ".35em")
+    .text(function (d) { return d.id.split("#")[0] });
+
   if (W) link.attr("stroke-width", ({ index: i }) => W[i]);
   if (L) link.attr("stroke", ({ index: i }) => L[i]);
   if (G) node.attr("fill", ({ index: i }) => color(G[i]));
@@ -204,6 +210,7 @@ export function ForceTree(data) {
       return d.group;
     })
     .call(drag(simulation));
+
 
   d3.selectAll(".operator").append("rect")
     .attr("width", window.nodeWidth)
