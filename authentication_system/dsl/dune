@@ -1,0 +1,5 @@
+(library
+ (name main)
+ (libraries lwt.unix core authentication_system)
+ (preprocess
+  (pps ppx_jane)))
