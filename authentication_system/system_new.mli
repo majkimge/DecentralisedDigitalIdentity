@@ -30,13 +30,18 @@ module Node : sig
     | Attribute : attribute -> attribute t
   [@@deriving sexp_of]
 
+  val attribute_id : string -> attribute_id
   val location : string -> location t
   val operator : string -> operator t
   val organisation : string -> organisation t
   val attribute : string -> attribute_condition -> attribute t
+  val attribute_node_of_attribute : attribute -> attribute t
 
   val attribute_maintainer :
     string -> attribute_condition -> attribute_maintainer t
+
+  val attribute_maintainer_node_of_attribute_maintainer :
+    attribute_maintainer -> attribute_maintainer t
 end
 
 module Position_tree : sig
@@ -92,10 +97,10 @@ val add_attribute_maintainer_under_maintainer :
   t
 
 val add_permission_edge :
-  t -> operator:Node.operator Node.t -> from:'a Node.t -> to_:'b Node.t -> unit
+  t -> operator:Node.operator Node.t -> from:'a Node.t -> to_:'b Node.t -> t
 
 val delete_permission_edge :
-  t -> operator:Node.operator Node.t -> node:'a Node.t -> unit
+  t -> operator:Node.operator Node.t -> node:'a Node.t -> t
 
 val move_operator : t -> operator:Node.operator Node.t -> to_:'a Node.t -> t
 (*

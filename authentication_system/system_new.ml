@@ -84,6 +84,7 @@ module Node = struct
         equal_attribute_maintainer attribute_maintainer1 attribute_maintainer2
     | _, _ -> false
 
+  let attribute_id id = id
   let location name = Location name
   let operator name = Operator name
   let organisation name = Organisation name
@@ -91,10 +92,15 @@ module Node = struct
   let attribute attribute_id attribute_condition =
     Attribute { attribute_id; attribute_condition }
 
+  let attribute_node_of_attribute attribute = Attribute attribute
+
   let attribute_maintainer attribute_maintainer_id
       attribute_maintainer_condition =
     Attribute_maintainer
       { attribute_maintainer_id; attribute_maintainer_condition }
+
+  let attribute_maintainer_node_of_attribute_maintainer attribute_maintainer =
+    Attribute_maintainer attribute_maintainer
 end
 
 type any_node = Any : 'a Node.t -> any_node [@@deriving sexp_of]
@@ -132,12 +138,20 @@ let any_to_json node count =
       ("is_extension", `Bool (any_node_is_extension count));
     ]
 
-(* let any_to_node (type a) node : a Node.t =
-   match node with
+let any_to_attribute = function
+  | Any (Attribute node) -> node
+  | _ -> raise_s [%message "This is not an attribute node"]
+
+let any_to_attribute_maintainer = function
+  | Any (Attribute_maintainer node) -> node
+  | _ -> raise_s [%message "This is not an attribute maintainer node"]
+
+(* let any_to_node : type a. any_node -> a Node.t = function
    |Any (Operator node) -> Node.Operator node
    |Any (Organisation node) -> Node.Organisation node
    |Any (Location node) -> Node.Location node
-   |Any (Attribute node) -> Node.Attribute node *)
+   |Any (Attribute node) -> Node.Attribute node
+   |Any (Attribute_maintainer node) -> Node.attribute_maintainer node *)
 
 type json_helper = { nodes : Yojson.t list; links : Yojson.t list }
 
@@ -854,10 +868,13 @@ let add_attribute_maintainer_under_maintainer t
 let add_permission_edge t ~operator (type a) ~(from : a Node.t) (type b)
     ~(to_ : b Node.t) =
   let { permission_dag; _ } = t in
+  let permission_dag_ref = ref permission_dag in
   match
-    Permission_DAG.can_add_permission_edge_to (ref permission_dag) operator to_
+    Permission_DAG.can_add_permission_edge_to permission_dag_ref operator to_
   with
-  | true -> Permission_DAG.add_edge (ref permission_dag) ~from ~to_
+  | true ->
+      let () = Permission_DAG.add_edge permission_dag_ref ~from ~to_ in
+      { t with permission_dag = !permission_dag_ref }
   | false ->
       raise_s
         [%message
@@ -869,11 +886,15 @@ let add_permission_edge t ~operator (type a) ~(from : a Node.t) (type b)
 
 let delete_permission_edge t ~operator ~node =
   let { permission_dag; _ } = t in
+  let permission_dag_ref = ref permission_dag in
   match
-    Permission_DAG.can_add_permission_edge_to (ref permission_dag) operator node
+    Permission_DAG.can_add_permission_edge_to permission_dag_ref operator node
   with
   | true ->
-      Permission_DAG.delete_edge (ref permission_dag) ~from:operator ~to_:node
+      let () =
+        Permission_DAG.delete_edge permission_dag_ref ~from:operator ~to_:node
+      in
+      { t with permission_dag = !permission_dag_ref }
   | false ->
       raise_s
         [%message
@@ -939,7 +960,7 @@ let get_attribute_by_id t attribute_id =
   match
     Permission_DAG.find_attribute_by_id (ref t.permission_dag) attribute_id
   with
-  | Some attribute -> attribute
+  | Some attribute -> !attribute.node |> any_to_attribute
   | None ->
       raise_s
         [%message
@@ -951,7 +972,8 @@ let get_attribute_maintainer_by_id t attribute_maintainer_id =
     Permission_DAG.find_attribute_maintainer_by_id (ref t.permission_dag)
       attribute_maintainer_id
   with
-  | Some attribute_maintainer -> attribute_maintainer
+  | Some attribute_maintainer ->
+      !attribute_maintainer.node |> any_to_attribute_maintainer
   | None ->
       raise_s
         [%message

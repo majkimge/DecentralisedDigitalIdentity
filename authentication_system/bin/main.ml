@@ -46,19 +46,19 @@ let system =
   System_new.add_attribute system ~attribute:fellow_attribute
     ~attribute_maintainer:fellow_attribute_maintainer
 
-let () =
+let system =
   System_new.add_permission_edge system ~operator:admin ~from:fellow_attribute
     ~to_:locationB
 
-let () =
+let system =
   System_new.add_permission_edge system ~operator:admin ~from:anil
     ~to_:locationA
 
-let () =
+let system =
   System_new.add_permission_edge system ~operator:admin ~from:anil
     ~to_:main_site
 
-let () =
+let system =
   System_new.add_permission_edge system ~operator:admin ~from:anil
     ~to_:fellow_attribute
 
