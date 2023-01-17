@@ -16,7 +16,7 @@
 %token CREATE MOVE SELECT GRANT ACCESS_TO
 %token SYSTEM
 %token LOCATION ORGANISATION ATTRIBUTE ATTRIBUTE_HANDLER OPERATOR
-%token IN UNDER 
+%token IN UNDER TO WITH
 %token WITH_ENTRANCES_TO  
 %token GRANTED_AUTOMATICALLY_IF
 %token AS
@@ -174,12 +174,37 @@ grant_line:
                                         System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
-                                        };
+                                        }
+    |GRANT ACCESS_TO ORGANISATION ID WITH ATTRIBUTE ID {
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id $7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.organisation $4 in
+                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }
+    |GRANT ACCESS_TO LOCATION ID WITH ATTRIBUTE ID {
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id $7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.location $4 in
+                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        };               
+
+move_line:
+    MOVE ID TO ID                   {
+                                        let operator = System_new.Node.operator $2 in 
+                                        let system = get_selected_system () in 
+                                        let to_ = System_new.Node.location $4 in 
+                                        System_new.move_operator system ~operator ~to_
+
+                                    }
 
 content_line:
     init_line {$1}
     |add_line  {let () = update_selected_system $1 in $1}
-    |grant_line  {let () = update_selected_system $1 in $1};
+    |grant_line  {let () = update_selected_system $1 in $1}
+    |move_line  {let () = update_selected_system $1 in $1};
 
 line:
     empty_lines content_line EOL {

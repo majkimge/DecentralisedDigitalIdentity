@@ -532,7 +532,7 @@ module Permission_DAG = struct
     match (from_ref, to_ref) with
     | Some from_ref, Some to_ref ->
         from_ref := { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to };
-        to_ref := { !to_ref with nodes_from = from_ref :: !to_ref.nodes_to }
+        to_ref := { !to_ref with nodes_from = from_ref :: !to_ref.nodes_from }
     | None, _ ->
         raise_s
           [%message
@@ -618,6 +618,12 @@ module Permission_DAG = struct
       match current_node.node with
       | Any (Organisation organisation) -> Some (Node.Organisation organisation)
       | Any (Location _) ->
+          print_s
+            [%message
+              "In node"
+                (current_node.node : any_node)
+                (List.map current_node.nodes_from ~f:(fun node -> !node.node)
+                  : any_node List.t)];
           let results =
             List.map current_node.nodes_from ~f:(fun node_ref ->
                 helper !node_ref)
@@ -714,8 +720,12 @@ module Permission_DAG = struct
     | Node.Operator _ -> false
     | Organisation _ | Location _ -> (
         match governing_organisation_node t node with
-        | Some node -> has_permission t ~operator node
-        | None -> false)
+        | Some node ->
+            print_s [%sexp (node : Node.organisation Node.t)];
+            has_permission t ~operator node
+        | None ->
+            print_s [%sexp "mistakemistakemistake"];
+            false)
     | Attribute _ -> (
         let attribute_maintainer = attribute_maintainer_of_attribute t node in
         match attribute_maintainer with

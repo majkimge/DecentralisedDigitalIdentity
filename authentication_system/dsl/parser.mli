@@ -12,6 +12,8 @@ type token =
   | OPERATOR
   | IN
   | UNDER
+  | TO
+  | WITH
   | WITH_ENTRANCES_TO
   | GRANTED_AUTOMATICALLY_IF
   | AS
