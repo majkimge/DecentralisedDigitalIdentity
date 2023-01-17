@@ -9,7 +9,7 @@ import ForceGraph from './graph.js'
 
 // const graph_lib = require('./graph.mjs')
 
-let raw_data = fs.readFileSync('../dsl/bin/system_rep')
+let raw_data = fs.readFileSync('../authentication_system/system_rep')
 let data = JSON.parse(raw_data)
 
 // data = { nodes: [{ id: "Pembroke" }, { id: "Building A" }], links: [{ source: "Pembroke", target: "Building A" }] }
