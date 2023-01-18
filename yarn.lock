@@ -15,7 +15,7 @@
   "resolved" "https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz"
   "version" "1.1.1"
 
-"body-parser@1.20.1":
+"body-parser@^1.20.1", "body-parser@1.20.1":
   "integrity" "sha512-jWi7abTbYwajOytWCQc37VulmWiRae5RyTpaCyDcS5/lMdtwSz5lOpDE67srw/HYe35f1z3fDQw+3txg7gNtWw=="
   "resolved" "https://registry.npmjs.org/body-parser/-/body-parser-1.20.1.tgz"
   "version" "1.20.1"

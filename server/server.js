@@ -19,12 +19,37 @@ let data = JSON.parse(raw_data)
 import express from 'express'
 
 const PORT = process.env.PORT || 3001;
+const router = express.Router();
+import bodyParser from "body-parser";
 
 const app = express();
+
+import { exec } from 'child_process'
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
 app.get("/api", (req, res) => {
     res.json({ message: data });
 });
+app.post('/interpret', async (req, res) => {
+    //var commands = req.body.commands;
+    //console.log(commands);
+    await fs.promises.writeFile("../authentication_system/bin/parser/commands", req.body.commands)
+    exec("dune exec -- ../authentication_system/bin/parser/parser_main.exe", (error, stdout, stderr) => {
+        if (error) {
+            console.log(`error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.log(`stderr: ${stderr}`);
 
+        }
+        console.log(`stdout: ${stdout}`);
+    })
+    console.log(req.body);
+    res.json({ abd: "abc" });
+});
 
 app.listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);
