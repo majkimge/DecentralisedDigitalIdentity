@@ -2,7 +2,10 @@ open Dsl
 open! Core
 
 let _ =
-  let lexbuf = Lexing.from_channel In_channel.stdin in
+  let lexbuf =
+    Lexing.from_channel
+      (In_channel.create "../authentication_system/bin/parser/commands")
+  in
   try
     while true do
       let system = Parser.main Lexer.token lexbuf in
@@ -17,7 +20,7 @@ let _ =
     let line = curr.Lexing.pos_lnum in
     let cnum = curr.Lexing.pos_cnum - curr.Lexing.pos_bol in
     let tok = Lexing.lexeme lexbuf in
-    raise_s [%message (exn : exn) (line : int) (cnum : int) tok]
+    print_s [%message (exn : exn) (line : int) (cnum : int) tok]
 
 (* Test Prompts:
    create system Pembroke as admin

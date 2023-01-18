@@ -1,0 +1,3 @@
+create system Pembroke as admin
+create organisation Pembroke
+create location main_site in organisation Pembroke with entrances to root
