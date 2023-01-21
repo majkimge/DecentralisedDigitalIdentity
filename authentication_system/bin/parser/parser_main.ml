@@ -48,5 +48,5 @@ let _ =
    grant access to location officeC with attribute Fellow_supervisee
    grant Anil access to location officeC
    grant Patrick attribute Fellow_supervisee
-   move Patrick to officeC
+      move Patrick to officeC
 *)

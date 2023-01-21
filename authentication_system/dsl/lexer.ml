@@ -1977,7 +1977,7 @@ let
 
   | 27 ->
 # 48 "dsl/lexer.mll"
-                     ( raise Eof )
+                     ( EOF )
 # 1982 "dsl/lexer.ml"
 
   | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;

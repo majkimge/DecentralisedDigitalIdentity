@@ -24,6 +24,7 @@ type token =
   | OR
   | ID of (string)
   | EOL
+  | EOF
 
 val main :
   (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Authentication_system.System_new.t

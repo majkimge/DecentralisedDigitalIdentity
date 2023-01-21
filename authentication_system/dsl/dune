@@ -1,5 +1,5 @@
 (library
  (name dsl)
- (libraries lwt.unix core authentication_system yojson)
+ (libraries lwt.unix core authentication_system yojson core_unix)
  (preprocess
   (pps ppx_jane ppx_sexp_message)))

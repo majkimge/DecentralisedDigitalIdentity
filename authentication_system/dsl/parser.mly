@@ -1,8 +1,10 @@
 %{ 
+    let file_exists = Sys.file_exists "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin"
     open! Core
     open Authentication_system
-
     let system_table = ref (String.Map.empty)
+    let () = (if file_exists then 
+        system_table:= (Marshal.from_channel (In_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") : System_new.t String.Map.t))
     let selected_system = ref ("")
     let selected_operator = ref (System_new.Node.operator "")
     let update_system system_name system = 
@@ -23,14 +25,16 @@
 %token COMMA LPAREN RPAREN
 %token AND OR
 %token <string> ID
-%token EOL
+%token EOL EOF
 %left AND OR
 %start main             /* the entry point */
 %type <Authentication_system.System_new.t> main
 %%
 main:
-    empty_lines init_line EOL               { $2 }
-    |empty_lines init_line EOL lines         { $4 }
+        
+    |init_line lines  EOF    {print_string "Printing";print_string "AHKJSDHFKJSHDKJFHKDHFKHSKJFHKJHSDJFHKJSDH"; Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures];
+                                              $2
+                                             }
 ;
 empty_lines:
     /* empty */ {}
@@ -207,12 +211,12 @@ content_line:
     |move_line  {let () = update_selected_system $1 in $1};
 
 line:
-    empty_lines content_line EOL {
+    empty_lines content_line {
         print_string
         (Yojson.to_string (Authentication_system.System_new.to_json $2));
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json $2);
       $2};
 lines:
-    line {$1}
-    |lines line {$2};
+    /*empty*/ {get_selected_system ()}
+    |lines EOL line {$3};

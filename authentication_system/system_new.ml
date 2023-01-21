@@ -356,6 +356,13 @@ module Permission_DAG = struct
             any_node_equal current_node.node node)
       then { nodes = []; links = [] }
       else
+        (* let () =
+             print_s
+               [%message
+                 (current_node.node : any_node)
+                   (List.map current_node.nodes_to ~f:(fun node -> !node.node)
+                     : any_node list)]
+           in *)
         let () = visited := current_node.node :: !visited in
         let { nodes; links } =
           json_helper_concat
@@ -396,6 +403,7 @@ module Permission_DAG = struct
 
   let add_dag_node t (type a) ~(node_to_add : a Node.t) (type b)
       ~(parent : b Node.t) =
+    let () = print_s [%message (Any node_to_add : any_node)] in
     match parent with
     | Operator _ ->
         {
@@ -404,18 +412,21 @@ module Permission_DAG = struct
             List.map t.operators ~f:(fun candidate ->
                 let { node; _ } = !candidate in
                 if any_node_equal node (Any parent) then
-                  ref
-                    {
-                      !candidate with
-                      nodes_to =
-                        ref
-                          {
-                            node = Any node_to_add;
-                            nodes_to = [];
-                            nodes_from = [ candidate ];
-                          }
-                        :: !candidate.nodes_to;
-                    }
+                  let () =
+                    candidate :=
+                      {
+                        !candidate with
+                        nodes_to =
+                          ref
+                            {
+                              node = Any node_to_add;
+                              nodes_to = [];
+                              nodes_from = [ candidate ];
+                            }
+                          :: !candidate.nodes_to;
+                      }
+                  in
+                  candidate
                 else candidate);
         }
     | _ ->
@@ -424,35 +435,43 @@ module Permission_DAG = struct
           if
             List.exists !visited_nodes ~f:(fun visited_node ->
                 any_node_equal visited_node node)
-          then !current_node
+          then current_node
           else if any_node_equal node (Any parent) then
-            {
-              !current_node with
-              nodes_to =
-                ref
-                  {
-                    node = Any node_to_add;
-                    nodes_to = [];
-                    nodes_from = [ current_node ];
-                  }
-                :: !current_node.nodes_to;
-            }
+            let () =
+              current_node :=
+                {
+                  !current_node with
+                  nodes_to =
+                    ref
+                      {
+                        node = Any node_to_add;
+                        nodes_to = [];
+                        nodes_from = [ current_node ];
+                      }
+                    :: !current_node.nodes_to;
+                }
+            in
+            current_node
           else
             let () = visited_nodes := node :: !visited_nodes in
-            {
-              !current_node with
-              nodes_to =
-                List.map !current_node.nodes_to ~f:(fun neighbour ->
-                    ref (add_helper neighbour visited_nodes));
-            }
+            let () =
+              current_node :=
+                {
+                  !current_node with
+                  nodes_to =
+                    List.map !current_node.nodes_to ~f:(fun neighbour ->
+                        add_helper neighbour visited_nodes);
+                }
+            in
+            current_node
         in
         let visited = ref [] in
-        let root = ref (add_helper t.root visited) in
-        let operators =
-          List.map t.operators ~f:(fun operator_ref ->
-              ref (add_helper operator_ref visited))
-        in
-        { root; operators }
+        let root = add_helper t.root visited in
+        (* let operators =
+             List.map t.operators ~f:(fun operator_ref ->
+                 ref (add_helper operator_ref visited))
+           in *)
+        { t with root }
 
   let find t ~f =
     let rec find_helper current_node visited_nodes =

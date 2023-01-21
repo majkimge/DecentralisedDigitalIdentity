@@ -45,4 +45,4 @@ rule token = parse
     | ')'            { RPAREN }
     | (['a'-'z' 'A'-'Z' '0'-'9' '_' '-'])+ as id       {ID (id)}
     | _ {token lexbuf}
-    | eof            { raise Eof }
+    | eof            { EOF }

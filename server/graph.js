@@ -1,4 +1,5 @@
 import * as d3 from "d3"
+// const d3 = require('d3')
 
 // Copyright 2021 Observable, Inc.
 // Released under the ISC license.
@@ -73,7 +74,7 @@ export default function ForceGraph({
     .attr("stroke-width", typeof linkStrokeWidth !== "function" ? linkStrokeWidth : null)
     .attr("stroke-linecap", linkStrokeLinecap)
     .selectAll("line")
-    .data(links)
+    .data(links).append("g")
     .join("line");
 
   const node = svg.append("g")

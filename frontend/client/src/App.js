@@ -4,6 +4,7 @@ import logo from "./logo.svg";
 import "./App.css";
 
 import { ForceGraph, ForceTree } from "./graph.js"
+import { svg } from "d3";
 
 class EssayForm extends React.Component {
   constructor(props) {
@@ -30,6 +31,28 @@ class EssayForm extends React.Component {
         });
       const content = await rawResponse.json();
       console.log(content);
+      console.log(this.props.position_tree_svg.current);
+      while (this.props.position_tree_svg.current.children.length > 0) {
+        this.props.position_tree_svg.current.removeChild(this.props.position_tree_svg.current.children[0])
+      }
+      this.props.position_tree_svg.current.appendChild(ForceGraph(content.message.position_tree
+        , {
+          nodeId: d => d.id,
+          nodeGroup: d => d.group,
+          nodeTitle: d => `${d.id}\n${d.group}`
+        }
+      ))
+
+      while (this.props.permission_dag_svg.current.children.length > 0) {
+        this.props.permission_dag_svg.current.removeChild(this.props.permission_dag_svg.current.children[0])
+      }
+      this.props.permission_dag_svg.current.appendChild(ForceGraph(content.message.permission_dag
+        , {
+          nodeId: d => d.id,
+          nodeGroup: d => d.group,
+          nodeTitle: d => `${d.id}\n${d.group}`
+        }
+      ))
     })();
     // return response.json(); // parses JSON response into native JavaScript objects
     //   alert('Commands submitted ' + this.state.value);
@@ -55,8 +78,10 @@ function App() {
   console.log(ForceTree(data2))
   const [data, setData] = React.useState(null);
 
-  const svg = React.useRef(null);
+  const position_tree_svg = React.useRef(null);
+  const permission_dag_svg = React.useRef(null);
   // React.useEffect(() => {
+  //   console.log(svg.current)
   //   if (svg.current) {
   //     if (!data) {
   //       svg.current.appendChild(ForceGraph(data1))
@@ -67,22 +92,22 @@ function App() {
   //   }
   // }, []);
 
-  React.useEffect(() => {
-    fetch("http://localhost:3000/api")
-      .then((res) => res.json())
-      .then((data) => {
-        if (svg.current) {
-          console.log(data.message);
-          svg.current.appendChild(ForceGraph(data.message.position_tree
-            , {
-              nodeId: d => d.id,
-              nodeGroup: d => d.group,
-              nodeTitle: d => `${d.id}\n${d.group}`
-            }
-          ))
-        }
-      });
-  }, []);
+  // React.useEffect(() => {
+  //   fetch("http://localhost:3000/api")
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       if (svg.current) {
+  //         console.log(data.message);
+  //         svg.current.appendChild(ForceGraph(data.message.position_tree
+  //           , {
+  //             nodeId: d => d.id,
+  //             nodeGroup: d => d.group,
+  //             nodeTitle: d => `${d.id}\n${d.group}`
+  //           }
+  //         ))
+  //       }
+  //     });
+  // }, []);
   // ReactDOM.render(<div>{ForceGraph(data1)}</div>, document.getElementById('root'));
   return (
     <div className="App">
@@ -90,8 +115,9 @@ function App() {
         {/* <img src={ForceGraph(data)} className="App-logo" alt="logo" /> */}
         {/* {ForceGraph(data1)} */}
         {/* <p>{!data ? "Loading..." : data}</p> */}
-        <EssayForm />
-        <div ref={svg} />
+        <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} />
+        <div ref={position_tree_svg} />
+        <div ref={permission_dag_svg} />
       </header>
     </div>
   );
