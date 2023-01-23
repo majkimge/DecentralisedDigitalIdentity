@@ -1,2 +1,2 @@
 select system Pembroke as admin
-create location officeC in location main_site with entrances to main_site
+create location main_site in organisation Pembroke with entrances to root

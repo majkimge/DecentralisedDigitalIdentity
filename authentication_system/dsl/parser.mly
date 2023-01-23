@@ -205,7 +205,6 @@ move_line:
                                     }
 
 content_line:
-    init_line {$1}
     |add_line  {let () = update_selected_system $1 in $1}
     |grant_line  {let () = update_selected_system $1 in $1}
     |move_line  {let () = update_selected_system $1 in $1};

@@ -467,11 +467,11 @@ module Permission_DAG = struct
         in
         let visited = ref [] in
         let root = add_helper t.root visited in
-        (* let operators =
-             List.map t.operators ~f:(fun operator_ref ->
-                 ref (add_helper operator_ref visited))
-           in *)
-        { t with root }
+        let operators =
+          List.map t.operators ~f:(fun operator_ref ->
+              add_helper operator_ref visited)
+        in
+        { root; operators }
 
   let find t ~f =
     let rec find_helper current_node visited_nodes =

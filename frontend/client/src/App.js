@@ -6,8 +6,14 @@ import { generateMnemonic, mnemonicToEntropy } from "ethereum-cryptography/bip39
 import { wordlist } from "ethereum-cryptography/bip39/wordlists/english"
 import { HDKey } from "ethereum-cryptography/hdkey"
 import { getPublicKey } from "ethereum-cryptography/secp256k1"
+import * as secp from "ethereum-cryptography/secp256k1"
+import { sha256 } from "ethereum-cryptography/sha256"
 import secureLocalStorage from "react-secure-storage"
 import CryptoJS from "crypto-js"
+import { line } from "d3";
+import { pbkdf2Sync } from "ethereum-cryptography/pbkdf2"
+import { utf8ToBytes, hexToBytes, bytesToHex } from 'ethereum-cryptography/utils'
+import { encrypt, decrypt } from "ethereum-cryptography/aes"
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -20,9 +26,41 @@ function generateSalt(length) {
 }
 
 function key2hex(array) {
-  return array
-    .map(x => x.toString(16).padStart(2, '0'))
-    .join('');
+  let res = ''
+  for (let i = 0; i < array.length; ++i) {
+    res += array[i].toString(16).padStart(2, '0')
+  }
+  return res
+}
+
+function hex2key(hex) {
+  return Uint8Array.from(hex.toString().match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+}
+
+function string2Uint8Array(string) {
+  let encoder = new TextEncoder();
+  return encoder.encode(string);
+}
+
+async function getEncryptedKey(privateKey) {
+  let password = window.sessionStorage.getItem('password');
+  let salt = secureLocalStorage.getItem('salt')
+  console.log(password)
+  console.log(salt)
+  let password_key = pbkdf2Sync(utf8ToBytes(password), utf8ToBytes(salt), 131072, 16, "sha256")
+  console.log(password_key);
+  console.log(hexToBytes("f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"));
+  let encryptedPassword = await encrypt(privateKey, password_key, hexToBytes("f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"))
+  return encryptedPassword
+}
+
+async function getDecryptedKey(privateKey) {
+  let password = window.sessionStorage.getItem('password');
+  let salt = secureLocalStorage.getItem('salt')
+  let password_key = pbkdf2Sync(utf8ToBytes(password), utf8ToBytes(salt), 131072, 16, "sha256")
+  let decryptedPassword = await decrypt(privateKey, password_key, hexToBytes("f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"))
+  console.log(decryptedPassword)
+  return decryptedPassword
 }
 
 class EssayForm extends React.Component {
@@ -34,8 +72,50 @@ class EssayForm extends React.Component {
   }
 
   handleChange(event) { this.setState({ value: event.target.value }); }
+  accountNameFromCommands(commands) {
+    let lines = commands.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].length > 0) {
+        let line = lines[i];
+        let tokens = line.split(' ');
+        if (tokens.length < 5) {
+          alert("Wrong format of the commands.")
+          return ""
+        } else {
+          return tokens[4]
+        }
+      }
+    }
+  }
+
+  accountOfName(name) {
+    let accounts = secureLocalStorage.getItem('accounts');
+    for (let i = 0; i < accounts.length; i++) {
+      if (accounts[i].name === name) {
+
+        return accounts[i];
+      }
+
+    }
+    alert("No account with that name found");
+    return null;
+  }
+
+
   handleSubmit(event) {
     (async () => {
+      let commands = this.state.value
+      let accountName = this.accountNameFromCommands(commands)
+      let account = this.accountOfName(accountName)
+      let password = window.sessionStorage.getItem('password')
+      let privateKeyEncrypted = await account.privateKeyEncrypted;
+      console.log(privateKeyEncrypted)
+      let privateKey = await getDecryptedKey(privateKeyEncrypted)
+      let commandsArray = string2Uint8Array(commands)
+      let commandsHash = sha256(commandsArray)
+      let signedMessage = secp.signSync(commandsHash, privateKey)
+      let publicKey = account.publicKey
+      console.log(secp.verify(signedMessage, commandsHash, publicKey))
       const rawResponse =
         await fetch("http://localhost:3000/interpret", {
           method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -45,8 +125,7 @@ class EssayForm extends React.Component {
             'Content-Type': 'application/json'
             // 'Content-Type': 'application/x-www-form-urlencoded',
           },
-
-          body: JSON.stringify({ commands: this.state.value }) // body data type must match "Content-Type" header
+          body: JSON.stringify({ commands: this.state.value, signedCommands: bytesToHex(signedMessage), publicKey: bytesToHex(publicKey) }) // body data type must match "Content-Type" header
         });
       const content = await rawResponse.json();
       console.log(content);
@@ -162,7 +241,7 @@ class AddressList extends React.Component {
   render() {
     const accounts = this.props.accounts;
 
-    const listItems = accounts.map((d) => <li key={d.name}>{d.name + ": " + d.publicKey}</li>);
+    const listItems = accounts.map((d) => <li key={d.name}>{d.name + ": 0x" + key2hex(d.publicKey)}</li>);
 
     return (
       <div>
@@ -272,9 +351,7 @@ class RestoreKeyRow extends React.Component {
     secureLocalStorage.setItem("master_key", key)
     let privateKey = this.generatePrivateKey(key, 0);
     let publicKey = getPublicKey(privateKey);
-    publicKey = key2hex(publicKey).toString()
-    privateKey = key2hex(privateKey)
-    let privateKeyEncrypted = CryptoJS.AES.encrypt(privateKey, password).toString();
+    let privateKeyEncrypted = getEncryptedKey(privateKey)
     let account = { name: this.state.name, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
     secureLocalStorage.setItem("accounts", [account])
     this.props.updateAccounts([account]);
@@ -326,37 +403,39 @@ class AddNewKeyRow extends React.Component {
   handleChange(event) { this.setState({ value: event.target.value }); }
 
   handleSubmit(event) {
-    let accountList = secureLocalStorage.getItem('accounts')
-    console.log(accountList)
-    let password = window.sessionStorage.getItem('password')
-    if (accountList === null || accountList.length === 0) {
-      let mnemonic, entropy;
-      ({ mnemonic, entropy } = this._generateMnemonic());
-      let key = this.getHdRootKey(entropy);
-      secureLocalStorage.setItem("master_key", key)
-      let privateKey = this.generatePrivateKey(key, 0);
-      let publicKey = getPublicKey(privateKey);
-      publicKey = key2hex(publicKey).toString()
-      privateKey = key2hex(privateKey)
-      console.log(privateKey)
+    (async () => {
+      let accountList = secureLocalStorage.getItem('accounts')
+      console.log(accountList)
+      let password = window.sessionStorage.getItem('password')
+      if (accountList === null || accountList.length === 0) {
+        let mnemonic, entropy;
+        ({ mnemonic, entropy } = this._generateMnemonic());
+        let key = this.getHdRootKey(entropy);
+        secureLocalStorage.setItem("master_key", key)
+        let privateKey = this.generatePrivateKey(key, 0);
+        let publicKey = getPublicKey(privateKey);
+        console.log(privateKey)
 
-      alert("This is your mnemonic: " + mnemonic + "\n Note it down and you will be able to recover your keys if you forget your password or change a device.")
-      let privateKeyEncrypted = CryptoJS.AES.encrypt(privateKey, password).toString();
-      let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
-      secureLocalStorage.setItem("accounts", [account])
-      this.props.updateAccounts([account]);
-    } else {
-      let key = secureLocalStorage.getItem('master_key');
-      let privateKey = this.generatePrivateKey(key, accountList.length);
-      let publicKey = getPublicKey(privateKey);
-      publicKey = key2hex(publicKey).toString()
-      privateKey = key2hex(privateKey)
-      let privateKeyEncrypted = CryptoJS.AES.encrypt(privateKey, password).toString();
-      let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
-      accountList.push(account);
-      secureLocalStorage.setItem("accounts", accountList)
-      this.props.updateAccounts(accountList);
-    }
+        alert("This is your mnemonic:\n" + mnemonic + "\nNote it down and you will be able to recover your keys if you forget your password or change a device.")
+        let privateKeyEncrypted = getEncryptedKey(privateKey)
+        let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
+        secureLocalStorage.setItem("accounts", [account])
+        this.props.updateAccounts([account]);
+      } else {
+        let key = secureLocalStorage.getItem('master_key');
+        let privateKey = this.generatePrivateKey(key, accountList.length);
+        let publicKey = getPublicKey(privateKey);
+        console.log(privateKey)
+        let testArray = new Uint8Array(1);
+        console.log(privateKey)
+        let privateKeyEncrypted = getEncryptedKey(privateKey)
+        let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
+        accountList.push(account);
+        secureLocalStorage.setItem("accounts", accountList)
+        this.props.updateAccounts(accountList);
+      }
+    })()
+
 
 
     event.preventDefault();
@@ -416,10 +495,16 @@ function App() {
         {/* <img src={ForceGraph(data)} className="App-logo" alt="logo" /> */}
         {/* {ForceGraph(data1)} */}
         {/* <p>{!data ? "Loading..." : data}</p> */}
-        <span>
-          <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} />
-          <Wallet />
-        </span>
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: 5 }}>
+
+            <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} />
+          </div>
+          <div style={{ flex: 5 }}>
+
+            <Wallet />
+          </div>
+        </div>
         <div ref={position_tree_svg} />
         <div ref={permission_dag_svg} />
       </header>

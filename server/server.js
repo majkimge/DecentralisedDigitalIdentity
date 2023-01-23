@@ -7,6 +7,11 @@ import * as fs from 'fs'
 
 import ForceGraph from './graph.js'
 
+import * as secp from "ethereum-cryptography/secp256k1.js"
+import { sha256 } from "ethereum-cryptography/sha256.js"
+
+import { utf8ToBytes, hexToBytes, bytesToUtf8, bytesToHex } from 'ethereum-cryptography/utils.js'
+
 // const graph_lib = require('./graph.js')
 
 let raw_data = fs.readFileSync('../authentication_system/system_rep')
@@ -31,6 +36,60 @@ import * as util from 'util'
 
 const exec_promise = util.promisify(exec);
 
+function accountNameFromCommands(commands) {
+    let lines = commands.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].length > 0) {
+            let line = lines[i];
+            let tokens = line.split(' ');
+            if (tokens.length < 5) {
+                //ERROR
+                console.error("Wrong format of the commands.")
+                return ""
+            } else {
+                return tokens[4]
+            }
+        }
+    }
+}
+
+function getPublicKey(name, publicKey) {
+    let path = '/home/majkimge/Cambridge/DecentralisedDigitalIdentity/server/accounts.json'
+    let exists = fs.existsSync(path)
+    if (exists) {
+        console.log("think exists")
+        let accounts = fs.readFileSync(path)
+        accounts = JSON.parse(accounts)
+        for (let i = 0; i < accounts.length; ++i) {
+            let account = accounts[i]
+            if (account.name === name) {
+                return account.publicKey
+            }
+        }
+        accounts.push({ name: name, publicKey: publicKey })
+        console.log("writing accounts json");
+        fs.writeFileSync(path, JSON.stringify(accounts))
+        return publicKey
+    } else {
+        let accounts = []
+        accounts.push({ name: name, publicKey: publicKey })
+        console.log("writing accounts json");
+        fs.writeFileSync(path, JSON.stringify(accounts))
+        return publicKey
+    }
+}
+
+function string2Uint8Array(string) {
+    let encoder = new TextEncoder();
+    return encoder.encode(string);
+}
+
+function verifyCommands(commands, signedCommands, publicKey) {
+    let commandsArray = string2Uint8Array(commands)
+    let commandsHash = sha256(commandsArray)
+    return secp.verify(signedCommands, commandsHash, publicKey)
+}
+
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -40,19 +99,38 @@ app.get("/api", (req, res) => {
 app.post('/interpret', async (req, res) => {
     //var commands = req.body.commands;
     //console.log(commands);
-    await fs.promises.writeFile("../authentication_system/bin/parser/commands", req.body.commands)
-    const { stdout, stderr } = await exec_promise("dune exec -- ../authentication_system/bin/parser/parser_main.exe")
+    let name = accountNameFromCommands(req.body.commands)
+    let publicKey = getPublicKey(name, req.body.publicKey)
 
-    if (stderr) {
-        console.log(`stderr: ${stderr}`);
+    if (publicKey !== req.body.publicKey) {
+        //ERROR
+        console.error("Public key mismatch")
+        res.json({ message: {} })
+    } else {
+        console.log(req.body.commands)
+        console.log(req.body.signedCommands)
+        console.log(req.body.publicKey)
+        if (verifyCommands(req.body.commands, hexToBytes(req.body.signedCommands), hexToBytes(publicKey))) {
+            await fs.promises.writeFile("/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/commands", req.body.commands)
+            const { stdout, stderr } = await exec_promise("dune exec -- ../authentication_system/bin/parser/parser_main.exe")
 
+            if (stderr) {
+                console.log(`stderr: ${stderr}`);
+
+            }
+            let raw_data = fs.readFileSync('/home/majkimge/Cambridge/DecentralisedDigitalIdentity/server/system_rep')
+            let data = JSON.parse(raw_data)
+            console.log(`stdout: ${stdout}`);
+
+            console.log(req.body);
+            res.json({ message: data });
+        } else {
+            //ERROR
+            console.error("Signature not verified");
+            res.json({ message: {} })
+        }
     }
-    let raw_data = fs.readFileSync('./system_rep')
-    let data = JSON.parse(raw_data)
-    console.log(`stdout: ${stdout}`);
 
-    console.log(req.body);
-    res.json({ message: data });
 });
 
 app.listen(PORT, () => {
