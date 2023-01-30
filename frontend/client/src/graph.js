@@ -72,9 +72,20 @@ export function ForceGraph({
     .attr("stroke-opacity", linkStrokeOpacity)
     .attr("stroke-width", typeof linkStrokeWidth !== "function" ? linkStrokeWidth : null)
     .attr("stroke-linecap", linkStrokeLinecap)
+    .attr("marker-end", "url(#arrowhead)")
     .selectAll("line")
     .data(links)
     .join("line");
+
+  const defs = svg.append("defs")
+  const marker = defs.append("marker")
+    .attr("id", "arrowhead")
+    .attr("markerWidth", 15)
+    .attr("markerHeight", 10)
+    .attr("refX", 25).attr("refY", 5)
+    .attr("orient", "auto")
+    .append("polygon")
+    .attr("points", "0 0, 15 5, 0 10")
 
   const node = svg.append("g")
     .attr("fill", nodeFill)
@@ -87,6 +98,13 @@ export function ForceGraph({
     .attr("r", nodeRadius)
     .call(drag(simulation));
 
+  const text = svg.append("g")
+    .selectAll("text")
+    .data(nodes)
+    .join("text")
+    .attr("fill", "white")
+    .style("font-size", "10px")
+    .text(function (d) { return d.id.split("#")[0] });
 
   node.append("text")
     .attr("dx", 12)
@@ -114,6 +132,10 @@ export function ForceGraph({
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .attr("fy", d => { if (d.id == 'root') { return 0 } else { return null } });
+    text
+      .attr("x", d => d.x + 15)
+      .attr("y", d => d.y);
+
   }
 
   function drag(simulation) {

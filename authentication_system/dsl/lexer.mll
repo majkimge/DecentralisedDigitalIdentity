@@ -23,6 +23,7 @@ rule token = parse
     | "create"           { CREATE }
     | "move"                      { MOVE }
     | "select"                    { SELECT }
+    | "join"                    { JOIN }
     | "grant"                     { GRANT }
     | "access to"                 { ACCESS_TO }
     | "system"                  { SYSTEM }

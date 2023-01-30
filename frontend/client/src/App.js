@@ -27,7 +27,8 @@ function generateSalt(length) {
 
 function key2hex(array) {
   let res = ''
-  for (let i = 0; i < array.length; ++i) {
+  let length = Object.keys(array).length;
+  for (let i = 0; i < length; ++i) {
     res += array[i].toString(16).padStart(2, '0')
   }
   return res
@@ -35,6 +36,23 @@ function key2hex(array) {
 
 function hex2key(hex) {
   return Uint8Array.from(hex.toString().match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
+}
+
+function dagWithoutExcluded(dagJson, excludedNodes) {
+  let newNodes = dagJson.nodes.filter(node => !(excludedNodes.some(excludedNode => excludedNode.id === node.id)))
+  let newLinks = dagJson.links.filter(link => !(excludedNodes.some(excludedNode => excludedNode.id === link.source || excludedNode.id === link.target)))
+  return { nodes: newNodes, links: newLinks }
+}
+
+function onlyAttributeDag(dagJson) {
+  // excludedNodes = nodeObjects.filter(node => node.group === "operator" ||node.group === "attribute" ||node.group === "attribute_handler")
+  let excludedNodes = dagJson.nodes.filter(node => node.group === "location" || node.group === "organisation")
+  return dagWithoutExcluded(dagJson, excludedNodes)
+}
+
+function onlyLocationDag(dagJson) {
+  let excludedNodes = dagJson.nodes.filter(node => node.group === "attribute" || node.group === "attribute_maintainer")
+  return dagWithoutExcluded(dagJson, excludedNodes)
 }
 
 function string2Uint8Array(string) {
@@ -107,14 +125,16 @@ class EssayForm extends React.Component {
       let commands = this.state.value
       let accountName = this.accountNameFromCommands(commands)
       let account = this.accountOfName(accountName)
+      console.log(account)
       let password = window.sessionStorage.getItem('password')
       let privateKeyEncrypted = await account.privateKeyEncrypted;
       console.log(privateKeyEncrypted)
-      let privateKey = await getDecryptedKey(privateKeyEncrypted)
+      let privateKey = await getDecryptedKey(hexToBytes(privateKeyEncrypted))
       let commandsArray = string2Uint8Array(commands)
       let commandsHash = sha256(commandsArray)
       let signedMessage = secp.signSync(commandsHash, privateKey)
       let publicKey = account.publicKey
+      publicKey = hexToBytes(publicKey)
       console.log(secp.verify(signedMessage, commandsHash, publicKey))
       const rawResponse =
         await fetch("http://localhost:3000/interpret", {
@@ -137,7 +157,10 @@ class EssayForm extends React.Component {
         , {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`
+          nodeTitle: d => `${d.id}\n${d.group}`,
+          nodeRadius: 12,
+          nodeStrength: -200,
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
       ))
 
@@ -148,7 +171,38 @@ class EssayForm extends React.Component {
         , {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`
+          nodeTitle: d => `${d.id}\n${d.group}`,
+          nodeRadius: 12,
+          nodeStrength: -200,
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+        }
+      ))
+
+      while (this.props.location_permission_dag_svg.current.children.length > 0) {
+        this.props.location_permission_dag_svg.current.removeChild(this.props.location_permission_dag_svg.current.children[0])
+      }
+      this.props.location_permission_dag_svg.current.appendChild(ForceGraph(onlyLocationDag((content.message.permission_dag))
+        , {
+          nodeId: d => d.id,
+          nodeGroup: d => d.group,
+          nodeTitle: d => `${d.id}\n${d.group}`,
+          nodeRadius: 12,
+          nodeStrength: -200,
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+        }
+      ))
+
+      while (this.props.attribute_permission_dag_svg.current.children.length > 0) {
+        this.props.attribute_permission_dag_svg.current.removeChild(this.props.attribute_permission_dag_svg.current.children[0])
+      }
+      this.props.attribute_permission_dag_svg.current.appendChild(ForceGraph(onlyAttributeDag((content.message.permission_dag))
+        , {
+          nodeId: d => d.id,
+          nodeGroup: d => d.group,
+          nodeTitle: d => `${d.id}\n${d.group}`,
+          nodeRadius: 12,
+          nodeStrength: -200,
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
       ))
     })();
@@ -240,8 +294,7 @@ class AddressList extends React.Component {
 
   render() {
     const accounts = this.props.accounts;
-
-    const listItems = accounts.map((d) => <li key={d.name}>{d.name + ": 0x" + key2hex(d.publicKey)}</li>);
+    const listItems = accounts.map((d) => <li key={d.name} style={{ fontSize: 20 }}>{d.name + ": 0x" + (d.publicKey).slice(0, 5) + "..."}</li>);
 
     return (
       <div>
@@ -344,30 +397,32 @@ class RestoreKeyRow extends React.Component {
   }
 
   handleSubmit(event) {
-    let password = window.sessionStorage.getItem('password')
-    const mnemonic = this.state.mnemonic
+    (async () => {
+      let password = window.sessionStorage.getItem('password')
+      const mnemonic = this.state.mnemonic
 
-    let key = this.getHdRootKey(mnemonicToEntropy(mnemonic, wordlist));
-    secureLocalStorage.setItem("master_key", key)
-    let privateKey = this.generatePrivateKey(key, 0);
-    let publicKey = getPublicKey(privateKey);
-    let privateKeyEncrypted = getEncryptedKey(privateKey)
-    let account = { name: this.state.name, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
-    secureLocalStorage.setItem("accounts", [account])
-    this.props.updateAccounts([account]);
-    event.preventDefault();
+      let key = this.getHdRootKey(mnemonicToEntropy(mnemonic, wordlist));
+      secureLocalStorage.setItem("master_key", JSON.stringify(key))
+      let privateKey = this.generatePrivateKey(key, 0);
+      let publicKey = getPublicKey(privateKey);
+      let privateKeyEncrypted = await getEncryptedKey(privateKey)
+      let account = { name: this.state.name, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
+      secureLocalStorage.setItem("accounts", [account])
+      this.props.updateAccounts([account]);
+      event.preventDefault();
+    })()
   }
 
   render() {
     return (
-      <div>
+      <div style={{ fontSize: 20, borderColor: "green", borderWidth: 3, borderStyle: "solid", padding: 10, margin: 10 }}>
         Restore key from mnemonic
         <form onSubmit={this.handleSubmit}>       <label>
           Name:
-          <input type="text" name='name' value={this.state.name} onChange={this.handleChange} />        </label>
+          <input type="text" name='name' value={this.state.name} onChange={this.handleChange} style={{ width: 100 }} />        </label>
           <label>
             Mnemonic:
-            <input type="text" name='mnemonic' value={this.state.mnemonic} onChange={this.handleChange} />        </label>
+            <input type="text" name='mnemonic' value={this.state.mnemonic} onChange={this.handleChange} style={{ width: 100 }} />        </label>
           <input type="submit" value="Submit" />
         </form>
       </div>
@@ -411,25 +466,28 @@ class AddNewKeyRow extends React.Component {
         let mnemonic, entropy;
         ({ mnemonic, entropy } = this._generateMnemonic());
         let key = this.getHdRootKey(entropy);
-        secureLocalStorage.setItem("master_key", key)
+        console.log(key)
+        secureLocalStorage.setItem("master_key", JSON.stringify(key))
         let privateKey = this.generatePrivateKey(key, 0);
         let publicKey = getPublicKey(privateKey);
         console.log(privateKey)
 
         alert("This is your mnemonic:\n" + mnemonic + "\nNote it down and you will be able to recover your keys if you forget your password or change a device.")
-        let privateKeyEncrypted = getEncryptedKey(privateKey)
-        let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
+        let privateKeyEncrypted = await getEncryptedKey(privateKey)
+        let account = { name: this.state.value, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
         secureLocalStorage.setItem("accounts", [account])
         this.props.updateAccounts([account]);
       } else {
-        let key = secureLocalStorage.getItem('master_key');
+        let key = JSON.parse(secureLocalStorage.getItem('master_key'));
+        key = HDKey.fromJSON(key)
+        console.log(key)
         let privateKey = this.generatePrivateKey(key, accountList.length);
         let publicKey = getPublicKey(privateKey);
         console.log(privateKey)
         let testArray = new Uint8Array(1);
         console.log(privateKey)
-        let privateKeyEncrypted = getEncryptedKey(privateKey)
-        let account = { name: this.state.value, publicKey: publicKey, privateKeyEncrypted: privateKeyEncrypted }
+        let privateKeyEncrypted = await getEncryptedKey(privateKey)
+        let account = { name: this.state.value, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
         accountList.push(account);
         secureLocalStorage.setItem("accounts", accountList)
         this.props.updateAccounts(accountList);
@@ -443,11 +501,15 @@ class AddNewKeyRow extends React.Component {
 
   render() {
     return (
-      <form onSubmit={this.handleSubmit}>        <label>
-        Name of new account:
-        <input type="text" value={this.state.value} onChange={this.handleChange} />        </label>
-        <input type="submit" value="Submit" />
-      </form>
+      <div style={{ fontSize: 20, borderColor: "green", borderWidth: 3, borderStyle: "solid", padding: 10, margin: 10 }}>
+        Add new account
+        <form onSubmit={this.handleSubmit}>        <label>
+          Name:
+          <input type="text" value={this.state.value} onChange={this.handleChange} />        </label>
+          <input type="submit" value="Submit" />
+        </form>
+      </div>
+
     );
   }
 
@@ -460,45 +522,17 @@ function App() {
 
   const position_tree_svg = React.useRef(null);
   const permission_dag_svg = React.useRef(null);
-  // React.useEffect(() => {
-  //   console.log(svg.current)
-  //   if (svg.current) {
-  //     if (!data) {
-  //       svg.current.appendChild(ForceGraph(data1))
-  //     } else {
+  const attribute_permission_dag_svg = React.useRef(null);
+  const location_permission_dag_svg = React.useRef(null);
 
-  //       svg.current.appendChild(ForceGraph(data))
-  //     }
-  //   }
-  // }, []);
-
-  // React.useEffect(() => {
-  //   fetch("http://localhost:3000/api")
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       if (svg.current) {
-  //         console.log(data.message);
-  //         svg.current.appendChild(ForceGraph(data.message.position_tree
-  //           , {
-  //             nodeId: d => d.id,
-  //             nodeGroup: d => d.group,
-  //             nodeTitle: d => `${d.id}\n${d.group}`
-  //           }
-  //         ))
-  //       }
-  //     });
-  // }, []);
-  // ReactDOM.render(<div>{ForceGraph(data1)}</div>, document.getElementById('root'));
   return (
     <div className="App">
       <header className="App-header">
-        {/* <img src={ForceGraph(data)} className="App-logo" alt="logo" /> */}
-        {/* {ForceGraph(data1)} */}
-        {/* <p>{!data ? "Loading..." : data}</p> */}
+
         <div style={{ display: "flex" }}>
           <div style={{ flex: 5 }}>
 
-            <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} />
+            <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} attribute_permission_dag_svg={attribute_permission_dag_svg} location_permission_dag_svg={location_permission_dag_svg} />
           </div>
           <div style={{ flex: 5 }}>
 
@@ -506,7 +540,21 @@ function App() {
           </div>
         </div>
         <div ref={position_tree_svg} />
-        <div ref={permission_dag_svg} />
+        <div style={{ display: "flex" }}>
+
+          <div style={{ flex: 3 }}>
+
+            <div ref={location_permission_dag_svg} /></div>
+
+          <div style={{ flex: 3 }}>
+
+            <div ref={permission_dag_svg} />
+          </div>
+
+          <div style={{ flex: 3 }}>
+
+            <div ref={attribute_permission_dag_svg} /></div>
+        </div>
       </header>
     </div>
   );

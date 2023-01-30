@@ -15,7 +15,7 @@
     let update_selected_system system = update_system (!selected_system) system
     let get_selected_system () = get_system (!selected_system);;
 %}
-%token CREATE MOVE SELECT GRANT ACCESS_TO
+%token CREATE MOVE SELECT JOIN GRANT ACCESS_TO
 %token SYSTEM
 %token LOCATION ORGANISATION ATTRIBUTE ATTRIBUTE_HANDLER OPERATOR
 %token IN UNDER TO WITH
@@ -32,7 +32,7 @@
 %%
 main:
         
-    |init_line lines  EOF    {print_string "Printing";print_string "AHKJSDHFKJSHDKJFHKDHFKHSKJFHKJHSDJFHKJSDH"; Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures];
+    |init_line lines  EOF    { Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures];
                                               $2
                                              }
 ;
@@ -53,7 +53,17 @@ init_line:
                                 let () = selected_system := $3 in 
                                 let () = selected_operator := System_new.Node.operator $5 in
                                 get_system $3
-                            };
+                            }
+    |JOIN SYSTEM ID AS ID       {
+                                let () = selected_system := $3 in 
+                                let operator = System_new.Node.operator $5 in
+                                let system = get_system $3 in
+                                let system = System_new.add_operator system ~operator in
+                                let () = selected_operator := operator in
+                                let () = update_system $3 system in 
+                                system
+                            };                        
+                        ;
 
 
 

@@ -2,10 +2,8 @@ open Dsl
 open! Core
 
 let _ =
-  let lexbuf =
-    Lexing.from_channel
-      (In_channel.create "../authentication_system/bin/parser/commands")
-  in
+  let lexbuf = Lexing.from_string (Array.get (Sys.get_argv ()) 1) in
+  print_string (Array.get (Sys.get_argv ()) 1);
   try
     while true do
       let system = Parser.main Lexer.token lexbuf in

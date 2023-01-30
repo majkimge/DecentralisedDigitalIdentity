@@ -2,6 +2,7 @@ type token =
   | CREATE
   | MOVE
   | SELECT
+  | JOIN
   | GRANT
   | ACCESS_TO
   | SYSTEM
