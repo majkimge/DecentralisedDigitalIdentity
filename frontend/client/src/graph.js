@@ -27,6 +27,7 @@ export function ForceGraph({
   colors = d3.schemeTableau10, // an array of color strings, for the node groups
   width = 640, // outer width, in pixels
   height = 400, // outer height, in pixels
+  with_markers = true,
   invalidation // when this promise resolves, stop the simulation
 } = {}) {
   // Compute values.
@@ -72,20 +73,32 @@ export function ForceGraph({
     .attr("stroke-opacity", linkStrokeOpacity)
     .attr("stroke-width", typeof linkStrokeWidth !== "function" ? linkStrokeWidth : null)
     .attr("stroke-linecap", linkStrokeLinecap)
-    .attr("marker-end", "url(#arrowhead)")
+    .attr("marker-end", function (d) { return with_markers ? "url(#arrowhead)" : "" })
     .selectAll("line")
     .data(links)
     .join("line");
 
   const defs = svg.append("defs")
+
+  let markerWidth = 15;
+  let markerHeight = 10;
+  // if (!with_markers) {
+  //   markerHeight = 0;
+  //   markerWidth = 0;
+  // } else {
+  //   markerHeight = 10;
+  //   markerWidth = 15;
+  // }
+
   const marker = defs.append("marker")
     .attr("id", "arrowhead")
-    .attr("markerWidth", 15)
-    .attr("markerHeight", 10)
+    .attr("markerWidth", markerWidth)
+    .attr("markerHeight", markerHeight)
     .attr("refX", 25).attr("refY", 5)
     .attr("orient", "auto")
     .append("polygon")
     .attr("points", "0 0, 15 5, 0 10")
+    .style("fill", "white")
 
   const node = svg.append("g")
     .attr("fill", nodeFill)
@@ -103,7 +116,10 @@ export function ForceGraph({
     .data(nodes)
     .join("text")
     .attr("fill", "white")
-    .style("font-size", "10px")
+    .style("font-size", "12px")
+    .style("paint-order", "stroke")
+    .style("stroke", "black")
+    .style("stroke-width", "2px")
     .text(function (d) { return d.id.split("#")[0] });
 
   node.append("text")

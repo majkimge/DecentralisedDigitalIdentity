@@ -149,6 +149,9 @@ class EssayForm extends React.Component {
         });
       const content = await rawResponse.json();
       console.log(content);
+      if (content.permission_problem) {
+        alert("No permission!")
+      }
       console.log(this.props.position_tree_svg.current);
       while (this.props.position_tree_svg.current.children.length > 0) {
         this.props.position_tree_svg.current.removeChild(this.props.position_tree_svg.current.children[0])
@@ -160,7 +163,8 @@ class EssayForm extends React.Component {
           nodeTitle: d => `${d.id}\n${d.group}`,
           nodeRadius: 12,
           nodeStrength: -200,
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
+          with_markers: false
         }
       ))
 
@@ -174,7 +178,8 @@ class EssayForm extends React.Component {
           nodeTitle: d => `${d.id}\n${d.group}`,
           nodeRadius: 12,
           nodeStrength: -200,
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
+          with_markers: true
         }
       ))
 
@@ -432,6 +437,8 @@ class RestoreKeyRow extends React.Component {
 
 }
 
+
+
 class AddNewKeyRow extends React.Component {
   constructor(props) {
     super(props);
@@ -539,20 +546,21 @@ function App() {
             <Wallet />
           </div>
         </div>
+        Position tree
         <div ref={position_tree_svg} />
         <div style={{ display: "flex" }}>
 
           <div style={{ flex: 3 }}>
-
+            Location Permissions
             <div ref={location_permission_dag_svg} /></div>
 
           <div style={{ flex: 3 }}>
-
+            All Permissions
             <div ref={permission_dag_svg} />
           </div>
 
           <div style={{ flex: 3 }}>
-
+            Identity Attributes
             <div ref={attribute_permission_dag_svg} /></div>
         </div>
       </header>

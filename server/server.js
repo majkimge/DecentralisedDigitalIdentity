@@ -5,7 +5,6 @@ const port = 3000;
 
 import * as fs from 'fs'
 
-import ForceGraph from './graph.js'
 
 import * as secp from "ethereum-cryptography/secp256k1.js"
 import { sha256 } from "ethereum-cryptography/sha256.js"
@@ -118,12 +117,13 @@ app.post('/interpret', async (req, res) => {
                 console.log(`stderr: ${stderr}`);
 
             }
+            let permission_problem = stdout.includes("No permission");
             let raw_data = fs.readFileSync('/home/majkimge/Cambridge/DecentralisedDigitalIdentity/server/system_rep')
             let data = JSON.parse(raw_data)
             console.log(`stdout: ${stdout}`);
 
             console.log(req.body);
-            res.json({ message: data });
+            res.json({ message: data, permission_problem: permission_problem });
         } else {
             //ERROR
             console.error("Signature not verified");

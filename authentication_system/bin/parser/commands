@@ -1,1 +1,3 @@
-select system Pembroke as patrick
+select system Events as Cambridge_admin
+grant Michal attribute Cambridge_alumni
+move Michal to Senate_House

@@ -198,10 +198,10 @@ module Position_tree = struct
           let links =
             match any_node_equal current_node.node parent with
             | true -> links
-            | false -> new_link :: links
+            | false -> if count = 0 then new_link :: links else links
           in
 
-          { nodes = new_node :: nodes; links }
+          { nodes = (if count = 0 then new_node :: nodes else nodes); links }
       | [] -> { nodes = []; links = [] }
     in
     let { nodes; links } = helper String.Map.empty [ (t, t.node) ] in
@@ -776,7 +776,7 @@ module Permission_DAG = struct
     | Operator _ | Attribute _ | Attribute_maintainer _ -> false
     | Organisation _ -> true
     | Location _ ->
-        Node.equal (Node.location "root") node
+        Node.equal (Node.location "world") node
         || has_permission t ~operator node
 end
 
@@ -788,7 +788,7 @@ type t = {
 [@@deriving sexp_of]
 
 let create operator_node name =
-  let root_node = Node.location "root" in
+  let root_node = Node.location "world" in
   let root = ref { Position_tree.node = Any root_node; children = [] } in
 
   let () =
@@ -827,7 +827,7 @@ let add_location t location (type a) ~(parent : a Node.t) ~entrances =
 
 let add_operator t ~operator =
   let { name; position_tree; permission_dag } = t in
-  let root_node = Node.location "root" in
+  let root_node = Node.location "world" in
   let () =
     Position_tree.splice_node ~root:position_tree ~node_to_splice:(ref operator)
       ~parent:root_node
@@ -836,7 +836,7 @@ let add_operator t ~operator =
   Permission_DAG.add_edge (ref permission_dag) ~from:operator ~to_:root_node;
   { name; position_tree; permission_dag }
 
-let root_node = Node.location "root"
+let root_node = Node.location "world"
 
 let add_organisation t ~(maintainer : Node.operator Node.t)
     ~(organisation : Node.organisation Node.t) (type a) ~(parent : a Node.t) =

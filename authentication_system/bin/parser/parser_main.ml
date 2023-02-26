@@ -57,6 +57,22 @@ let _ =
    move Patrick to officeC
 *)
 
+(* Ticket system
+   create system Cambridge as admin
+   create attribute handler Cambridge_handler
+   create attribute Student under attribute handler Cambridge_handler
+   create attribute Professor under attribute handler Cambridge_handler
+   create attribute Postdoc under attribute handler Cambridge_handler
+
+   join system Cambridge as Pembroke_admin
+   create attribute handler Pembroke_handler
+   create attribute Pembroke_member under attribute handler Pembroke_handler
+   create attribute Internal_ticket under attribute handler Pembroke_handler granted automatically if Pembroke_member
+   create attribute External_ticket under attribute handler Pembroke_handler granted automatically if Student or Professor or Postdoc
+   create organisation Pembroke
+   create location Internal_event_space in organisation Pembroke with entrances to root
+*)
+
 (* Pseudocode for lock:
    onLockRead(lock, card){
      let challengeValue = generateChallenge() in
