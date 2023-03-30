@@ -6,16 +6,23 @@ let _ =
     Lexing.from_channel
       (In_channel.create "../authentication_system/bin/parser/commands")
   in
+  let start = Core_unix.gettimeofday () in
   try
     while true do
       let system = Parser.main Lexer.token lexbuf in
-      print_string
-        (Yojson.to_string (Authentication_system.System_new.to_json system));
+      (* print_string
+         (Yojson.to_string (Authentication_system.System_new.to_json system)); *)
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json system);
       Out_channel.flush stdout
     done
   with exn ->
+    let stop = Core_unix.gettimeofday () in
+    let outc = Out_channel.create ~append:true "time_measures" in
+    protect
+      ~f:(fun () -> fprintf outc "%f\n" (stop -. start))
+      ~finally:(fun () -> Out_channel.close outc);
+    print_s [%message (stop -. start : float)];
     let curr = lexbuf.Lexing.lex_curr_p in
     let line = curr.Lexing.pos_lnum in
     let cnum = curr.Lexing.pos_cnum - curr.Lexing.pos_bol in
@@ -58,19 +65,19 @@ let _ =
 *)
 
 (* Ticket system
-   create system Cambridge as admin
+   create system Cambridge as Cambridge_admin
    create attribute handler Cambridge_handler
    create attribute Student under attribute handler Cambridge_handler
    create attribute Professor under attribute handler Cambridge_handler
    create attribute Postdoc under attribute handler Cambridge_handler
 
-   join system Cambridge as Pembroke_admin
-   create attribute handler Pembroke_handler
-   create attribute Pembroke_member under attribute handler Pembroke_handler
-   create attribute Internal_ticket under attribute handler Pembroke_handler granted automatically if Pembroke_member
-   create attribute External_ticket under attribute handler Pembroke_handler granted automatically if Student or Professor or Postdoc
-   create organisation Pembroke
-   create location Internal_event_space in organisation Pembroke with entrances to root
+   join system Cambridge as College_admin
+   create attribute handler College_handler
+   create attribute College_member under attribute handler College_handler
+   create attribute Internal_ticket under attribute handler College_handler granted automatically if College_member
+   create attribute External_ticket under attribute handler College_handler granted automatically if Student or Professor or Postdoc
+   create organisation College
+   create location main_court in organisation College with entrances to world
 *)
 
 (* Pseudocode for lock:
@@ -83,9 +90,8 @@ let _ =
                        move {name} to {lock.to}" in
        let signedCommands = await requesSignedCommands(commands, card) in
        if (verifySignature(signedCommands, commands, name)) then
-         let success, result = Authentication_system.execute ("move {name} to {lock.to} ")
+         let success, result = Authentication_system.execute (commands)
          if (success) then
            Lock.open lock
-           System.broadcastCommands(commands, signedCommands, name)
    }
 *)

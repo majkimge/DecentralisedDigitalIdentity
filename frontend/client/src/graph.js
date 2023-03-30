@@ -110,22 +110,22 @@ export function ForceGraph({
     .join("circle")
     .attr("r", nodeRadius)
     .call(drag(simulation));
+  //Comment for big
+  // const text = svg.append("g")
+  //   .selectAll("text")
+  //   .data(nodes)
+  //   .join("text")
+  //   .attr("fill", "white")
+  //   .style("font-size", "12px")
+  //   .style("paint-order", "stroke")
+  //   .style("stroke", "black")
+  //   .style("stroke-width", "2px")
+  //   .text(function (d) { return d.id.split("#")[0] });
 
-  const text = svg.append("g")
-    .selectAll("text")
-    .data(nodes)
-    .join("text")
-    .attr("fill", "white")
-    .style("font-size", "12px")
-    .style("paint-order", "stroke")
-    .style("stroke", "black")
-    .style("stroke-width", "2px")
-    .text(function (d) { return d.id.split("#")[0] });
-
-  node.append("text")
-    .attr("dx", 12)
-    .attr("dy", ".35em")
-    .text(function (d) { return d.id.split("#")[0] });
+  // node.append("text")
+  //   .attr("dx", 12)
+  //   .attr("dy", ".35em")
+  //   .text(function (d) { return d.id.split("#")[0] });
 
   if (W) link.attr("stroke-width", ({ index: i }) => W[i]);
   if (L) link.attr("stroke", ({ index: i }) => L[i]);
@@ -148,9 +148,10 @@ export function ForceGraph({
       .attr("cx", d => d.x)
       .attr("cy", d => d.y)
       .attr("fy", d => { if (d.id == 'root') { return 0 } else { return null } });
-    text
-      .attr("x", d => d.x + 15)
-      .attr("y", d => d.y);
+    //comment for big
+    // text
+    //   .attr("x", d => d.x + 15)
+    //   .attr("y", d => d.y);
 
   }
 

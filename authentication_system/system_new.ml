@@ -113,6 +113,8 @@ let any_node_name node = match node with Any node -> Node.name node
 let any_node_type_string node =
   match node with Any node -> Node.type_string node
 
+let _any_node_to_string node = any_node_type_string node ^ any_node_name node
+
 (* let any_is_maintainer node ~parent =
    match (node, parent) with
    | Any (Node.Attribute node), Any (Node.Operator parent) ->
@@ -403,7 +405,7 @@ module Permission_DAG = struct
 
   let add_dag_node t (type a) ~(node_to_add : a Node.t) (type b)
       ~(parent : b Node.t) =
-    let () = print_s [%message (Any node_to_add : any_node)] in
+    (* let () = print_s [%message (Any node_to_add : any_node)] in *)
     match parent with
     | Operator _ ->
         {
@@ -632,17 +634,17 @@ module Permission_DAG = struct
               ~node:(Any attribute_maintainer : any_node)
               ~dag:(to_string !t : string)]
 
-  let governing_organisation_node t (type a) (node : a Node.t) =
+  let governing_organisation_node t node =
     let rec helper current_node =
       match current_node.node with
       | Any (Organisation organisation) -> Some (Node.Organisation organisation)
       | Any (Location _) ->
-          print_s
-            [%message
-              "In node"
-                (current_node.node : any_node)
-                (List.map current_node.nodes_from ~f:(fun node -> !node.node)
-                  : any_node List.t)];
+          (* print_s
+             [%message
+               "In node"
+                 (current_node.node : any_node)
+                 (List.map current_node.nodes_from ~f:(fun node -> !node.node)
+                   : any_node List.t)]; *)
           let results =
             List.map current_node.nodes_from ~f:(fun node_ref ->
                 helper !node_ref)
@@ -740,7 +742,7 @@ module Permission_DAG = struct
     | Organisation _ | Location _ -> (
         match governing_organisation_node t node with
         | Some node ->
-            print_s [%sexp (node : Node.organisation Node.t)];
+            (* print_s [%sexp (node : Node.organisation Node.t)]; *)
             has_permission t ~operator node
         | None ->
             print_s [%sexp "mistakemistakemistake"];

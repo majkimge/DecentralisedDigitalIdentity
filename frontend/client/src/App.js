@@ -17,6 +17,10 @@ import { encrypt, decrypt } from "ethereum-cryptography/aes"
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
+const strengthConst = -20  //-200 for actual
+const nodeRadiusConst = 10 //15 for actual
+const withMarkersForPermissions = false //true for actual
+
 function generateSalt(length) {
   let res = '';
   for (let i = 0; i < length; i++) {
@@ -44,10 +48,59 @@ function dagWithoutExcluded(dagJson, excludedNodes) {
   return { nodes: newNodes, links: newLinks }
 }
 
+function dagWithIncluded(dagJson, includedNodes) {
+  let newNodes = dagJson.nodes.filter(node => (includedNodes.some(includedNode => includedNode === node.id)))
+  let newLinks = dagJson.links.filter(link => (includedNodes.some(includedNode => includedNode === link.target)) && (includedNodes.some(includedNode => includedNode === link.source)))
+  return { nodes: newNodes, links: newLinks }
+}
+
 function onlyAttributeDag(dagJson) {
   // excludedNodes = nodeObjects.filter(node => node.group === "operator" ||node.group === "attribute" ||node.group === "attribute_handler")
   let excludedNodes = dagJson.nodes.filter(node => node.group === "location" || node.group === "organisation")
   return dagWithoutExcluded(dagJson, excludedNodes)
+}
+
+function union(setA, setB) {
+  const _union = new Set(setA);
+  for (const elem of setB) {
+    _union.add(elem);
+  }
+  return _union;
+}
+
+function dfs(edges, node, reachable) {
+  let set = new Set()
+  if (reachable.has(node) || node === "world") {
+    set.add(node);
+  } else {
+    let neighbours = []
+    if (node in edges) {
+      neighbours = edges[node];
+    }
+    for (var i = 0; i < neighbours.length; ++i) {
+      set = union(set, dfs(edges, neighbours[i], reachable));
+    }
+    set.add(node);
+  }
+  return set;
+}
+
+function onlyGivenCollegeDag(dagJson, collegeName) {
+  let reachable = new Set();
+  let edges = {}
+  dagJson.links.forEach(link => {
+
+    if (link.target in edges) { edges[link.target].push(link.source) } else { edges[link.target] = [link.source] }
+  })
+  for (var i = 0; i < dagJson.nodes.length; ++i) {
+    let node = dagJson.nodes[i];
+    if (dagJson.nodes[i].id.includes(collegeName)) {
+      reachable = union(reachable, dfs(edges, node.id, reachable))
+    }
+  }
+  reachable = Array.from(reachable);
+  console.log(reachable);
+  return dagWithIncluded(dagJson, reachable);
 }
 
 function onlyLocationDag(dagJson) {
@@ -156,13 +209,14 @@ class EssayForm extends React.Component {
       while (this.props.position_tree_svg.current.children.length > 0) {
         this.props.position_tree_svg.current.removeChild(this.props.position_tree_svg.current.children[0])
       }
+      console.log(onlyGivenCollegeDag(content.message.permission_dag, "College0"))
       this.props.position_tree_svg.current.appendChild(ForceGraph(content.message.position_tree
         , {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
           nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: 12,
-          nodeStrength: -200,
+          nodeRadius: nodeRadiusConst,
+          nodeStrength: strengthConst,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
           with_markers: false
         }
@@ -176,10 +230,10 @@ class EssayForm extends React.Component {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
           nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: 12,
-          nodeStrength: -200,
+          nodeRadius: nodeRadiusConst,
+          nodeStrength: strengthConst,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
-          with_markers: true
+          with_markers: withMarkersForPermissions
         }
       ))
 
@@ -191,8 +245,9 @@ class EssayForm extends React.Component {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
           nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: 12,
-          nodeStrength: -200,
+          nodeRadius: nodeRadiusConst,
+          nodeStrength: strengthConst,
+          with_markers: withMarkersForPermissions,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
       ))
@@ -205,8 +260,9 @@ class EssayForm extends React.Component {
           nodeId: d => d.id,
           nodeGroup: d => d.group,
           nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: 12,
-          nodeStrength: -200,
+          nodeRadius: nodeRadiusConst,
+          nodeStrength: strengthConst,
+          with_markers: withMarkersForPermissions,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
       ))

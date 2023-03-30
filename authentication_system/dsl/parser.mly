@@ -32,7 +32,7 @@
 %%
 main:
         
-    |init_line lines  EOF    { Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures];
+    |init_line lines EOF    { Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; print_string "PrintingPtint";
                                               $2
                                              }
 ;
@@ -217,12 +217,11 @@ move_line:
 content_line:
     |add_line  {let () = update_selected_system $1 in $1}
     |grant_line  {let () = update_selected_system $1 in $1}
+    |init_line   {$1}
     |move_line  {let () = update_selected_system $1 in $1};
 
 line:
     empty_lines content_line {
-        print_string
-        (Yojson.to_string (Authentication_system.System_new.to_json $2));
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json $2);
       $2};
