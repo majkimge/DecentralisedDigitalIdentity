@@ -242,32 +242,34 @@ module Position_tree = struct
       ~(parent : b Node.t) =
     let rec splice_helper (current_node : t ref) visited_nodes =
       let { node; children } = !current_node in
-      if String.Set.mem !visited_nodes (any_to_string node) then ()
+      if String.Set.mem !visited_nodes (any_to_string node) then false
       else if any_node_equal node (Any parent) then
-        current_node :=
-          {
-            !current_node with
-            children =
-              ref
-                {
-                  node = Any !node_to_splice;
-                  children =
-                    (match !node_to_splice with
-                    | Operator _ -> []
-                    | _ -> [ current_node ]);
-                }
-              :: children;
-          }
+        let () =
+          current_node :=
+            {
+              !current_node with
+              children =
+                ref
+                  {
+                    node = Any !node_to_splice;
+                    children =
+                      (match !node_to_splice with
+                      | Operator _ -> []
+                      | _ -> [ current_node ]);
+                  }
+                :: children;
+            }
+        in
+        true
       else
         let () =
           visited_nodes := String.Set.add !visited_nodes (any_to_string node)
         in
-
-        List.iter !current_node.children ~f:(fun child_ref ->
+        List.exists !current_node.children ~f:(fun child_ref ->
             splice_helper child_ref visited_nodes)
     in
-
-    splice_helper root (ref String.Set.empty)
+    let _ = splice_helper root (ref String.Set.empty) in
+    ()
 
   let find t ~f =
     let rec find_helper (current_node : t ref) visited_nodes =
@@ -278,12 +280,10 @@ module Position_tree = struct
         let () =
           visited_nodes := String.Set.add !visited_nodes (any_to_string node)
         in
-        let results =
-          List.map children ~f:(fun child_ref ->
-              find_helper child_ref visited_nodes)
-        in
-        List.find results ~f:Option.is_some |> Option.join
+        List.find_map children ~f:(fun child_ref ->
+            find_helper child_ref visited_nodes)
     in
+
     find_helper t (ref String.Set.empty)
 
   let find_node t (type a) (node_to_find : a Node.t) =
@@ -350,10 +350,8 @@ module Permission_DAG = struct
 
   let to_json t =
     let rec helper current_node visited =
-      if
-        List.exists !visited ~f:(fun node ->
-            any_node_equal current_node.node node)
-      then { nodes = []; links = [] }
+      if String.Set.mem !visited (any_to_string current_node.node) then
+        { nodes = []; links = [] }
       else
         (* let () =
              print_s
@@ -362,7 +360,9 @@ module Permission_DAG = struct
                    (List.map current_node.nodes_to ~f:(fun node -> !node.node)
                      : any_node list)]
            in *)
-        let () = visited := current_node.node :: !visited in
+        let () =
+          visited := String.Set.add !visited (any_to_string current_node.node)
+        in
         let { nodes; links } =
           json_helper_concat
             (List.map current_node.nodes_to ~f:(fun node_ref ->
@@ -382,7 +382,7 @@ module Permission_DAG = struct
             @ links;
         }
     in
-    let visited = ref [] in
+    let visited = ref String.Set.empty in
     let { nodes; links } =
       json_helper_concat
         (helper !(t.root) visited
@@ -494,6 +494,38 @@ module Permission_DAG = struct
     in
     List.find results ~f:Option.is_some |> Option.join
 
+  let find_all_nodes t nodes_to_find =
+    let rec find_helper current_node visited_nodes found_nodes =
+      if String.Set.length nodes_to_find = List.length !found_nodes then ()
+      else
+        let { node; _ } = !current_node in
+        if Set.mem !visited_nodes (any_to_string node) then ()
+        else
+          let () =
+            if String.Set.mem nodes_to_find (any_to_string !current_node.node)
+            then found_nodes := current_node :: !found_nodes
+          in
+          let () =
+            visited_nodes := String.Set.add !visited_nodes (any_to_string node)
+          in
+          List.iter !current_node.nodes_to ~f:(fun node_ref ->
+              find_helper node_ref visited_nodes found_nodes)
+    in
+    let visited_nodes = ref String.Set.empty in
+    let found_nodes = ref [] in
+    let () =
+      List.iter (!t.root :: !t.operators) ~f:(fun node_ref ->
+          find_helper node_ref visited_nodes found_nodes)
+    in
+    if String.Set.length nodes_to_find = List.length !found_nodes then
+      !found_nodes
+    else
+      raise_s
+        [%message
+          "Couldn't find the nodes"
+            (nodes_to_find : String.Set.t)
+            (!found_nodes : dag_node ref list)]
+
   let find_node t (type a) (node_to_find : a Node.t) =
     find t ~f:(fun node -> any_node_equal !node.node (Any node_to_find))
 
@@ -557,6 +589,25 @@ module Permission_DAG = struct
               ~node:(Any from : any_node)
               ~dag:(to_string !t : string)]
     | _, None ->
+        raise_s
+          [%message
+            "Could not find node in dag"
+              ~node:(Any to_ : any_node)
+              ~dag:(to_string !t : string)]
+
+  let add_all_edges_exn t (type a) ~(from : a Node.t list) (type b)
+      ~(to_ : b Node.t) =
+    let from_names = List.map from ~f:(fun node -> any_to_string (Any node)) in
+    let from_refs = find_all_nodes t (String.Set.of_list from_names) in
+    let to_ref = find_node t to_ in
+    match to_ref with
+    | Some to_ref ->
+        List.iter from_refs ~f:(fun from_ref ->
+            from_ref :=
+              { !from_ref with nodes_to = to_ref :: !from_ref.nodes_to };
+            to_ref :=
+              { !to_ref with nodes_from = from_ref :: !to_ref.nodes_from })
+    | None ->
         raise_s
           [%message
             "Could not find node in dag"
@@ -855,12 +906,13 @@ let add_attribute t ~(attribute : Node.attribute Node.t)
         Permission_DAG.add_dag_node permission_dag ~node_to_add:attribute
           ~parent:attribute_maintainer
       in
-      Node.attributes_from_condition attribute_condition
-      |> List.map ~f:(fun condition_attribute ->
-             Node.Attribute condition_attribute)
-      |> List.iter ~f:(fun condition_node ->
-             Permission_DAG.add_edge (ref permission_dag) ~from:condition_node
-               ~to_:attribute);
+      let from =
+        Node.attributes_from_condition attribute_condition
+        |> List.map ~f:(fun condition_attribute ->
+               Node.Attribute condition_attribute)
+      in
+      Permission_DAG.add_all_edges_exn (ref permission_dag) ~from ~to_:attribute;
+
       { t with permission_dag }
 
 let add_attribute_maintainer_under_node t
