@@ -4,7 +4,7 @@ import time
 import os
 
 WIDTH = 10
-DEPTH = 20
+DEPTH = 80
 
 
 def rand(prob=10):

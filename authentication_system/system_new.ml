@@ -113,7 +113,7 @@ let any_node_name node = match node with Any node -> Node.name node
 let any_node_type_string node =
   match node with Any node -> Node.type_string node
 
-let _any_node_to_string node = any_node_type_string node ^ any_node_name node
+let any_to_string node = any_node_type_string node ^ any_node_name node
 
 (* let any_is_maintainer node ~parent =
    match (node, parent) with
@@ -242,10 +242,7 @@ module Position_tree = struct
       ~(parent : b Node.t) =
     let rec splice_helper (current_node : t ref) visited_nodes =
       let { node; children } = !current_node in
-      if
-        List.exists !visited_nodes ~f:(fun visited_node ->
-            any_node_equal visited_node node)
-      then ()
+      if String.Set.mem !visited_nodes (any_to_string node) then ()
       else if any_node_equal node (Any parent) then
         current_node :=
           {
@@ -262,31 +259,32 @@ module Position_tree = struct
               :: children;
           }
       else
-        let () = visited_nodes := node :: !visited_nodes in
+        let () =
+          visited_nodes := String.Set.add !visited_nodes (any_to_string node)
+        in
 
         List.iter !current_node.children ~f:(fun child_ref ->
             splice_helper child_ref visited_nodes)
     in
 
-    splice_helper root (ref [])
+    splice_helper root (ref String.Set.empty)
 
   let find t ~f =
     let rec find_helper (current_node : t ref) visited_nodes =
       let { node; children } = !current_node in
-      if
-        List.exists !visited_nodes ~f:(fun visited_node ->
-            any_node_equal visited_node node)
-      then None
+      if Set.mem !visited_nodes (any_to_string node) then None
       else if f current_node then Some current_node
       else
-        let () = visited_nodes := node :: !visited_nodes in
+        let () =
+          visited_nodes := String.Set.add !visited_nodes (any_to_string node)
+        in
         let results =
           List.map children ~f:(fun child_ref ->
               find_helper child_ref visited_nodes)
         in
         List.find results ~f:Option.is_some |> Option.join
     in
-    find_helper t (ref [])
+    find_helper t (ref String.Set.empty)
 
   let find_node t (type a) (node_to_find : a Node.t) =
     find t ~f:(fun node -> any_node_equal !node.node (Any node_to_find))
@@ -319,16 +317,15 @@ module Position_tree = struct
   let delete_node ~root (type a) ~(node_to_delete : a Node.t) =
     let rec delete_helper (current_node : t) visited_nodes =
       let { node; children } = current_node in
-      if
-        List.exists !visited_nodes ~f:(fun visited_node ->
-            any_node_equal visited_node node)
-      then current_node
+      if Set.mem !visited_nodes (any_to_string node) then current_node
       else
         let new_children =
           List.filter children ~f:(fun child_ref ->
               not (any_node_equal (Any node_to_delete) !child_ref.node))
         in
-        let () = visited_nodes := node :: !visited_nodes in
+        let () =
+          visited_nodes := String.Set.add !visited_nodes (any_to_string node)
+        in
         {
           current_node with
           children =
@@ -336,7 +333,7 @@ module Position_tree = struct
                 ref (delete_helper !child_ref visited_nodes));
         }
     in
-    delete_helper root (ref [])
+    delete_helper root (ref String.Set.empty)
 end
 
 module Permission_DAG = struct
@@ -434,10 +431,7 @@ module Permission_DAG = struct
     | _ ->
         let rec add_helper current_node visited_nodes =
           let { node; _ } = !current_node in
-          if
-            List.exists !visited_nodes ~f:(fun visited_node ->
-                any_node_equal visited_node node)
-          then current_node
+          if Set.mem !visited_nodes (any_to_string node) then current_node
           else if any_node_equal node (Any parent) then
             let () =
               current_node :=
@@ -455,7 +449,10 @@ module Permission_DAG = struct
             in
             current_node
           else
-            let () = visited_nodes := node :: !visited_nodes in
+            let () =
+              visited_nodes :=
+                String.Set.add !visited_nodes (any_to_string node)
+            in
             let () =
               current_node :=
                 {
@@ -467,7 +464,7 @@ module Permission_DAG = struct
             in
             current_node
         in
-        let visited = ref [] in
+        let visited = ref String.Set.empty in
         let root = add_helper t.root visited in
         let operators =
           List.map t.operators ~f:(fun operator_ref ->
@@ -478,20 +475,19 @@ module Permission_DAG = struct
   let find t ~f =
     let rec find_helper current_node visited_nodes =
       let { node; _ } = !current_node in
-      if
-        List.exists !visited_nodes ~f:(fun visited_node ->
-            any_node_equal visited_node node)
-      then None
+      if Set.mem !visited_nodes (any_to_string node) then None
       else if f current_node then Some current_node
       else
-        let () = visited_nodes := node :: !visited_nodes in
+        let () =
+          visited_nodes := String.Set.add !visited_nodes (any_to_string node)
+        in
         let results =
           List.map !current_node.nodes_to ~f:(fun node_ref ->
               find_helper node_ref visited_nodes)
         in
         List.find results ~f:Option.is_some |> Option.join
     in
-    let visited_nodes = ref [] in
+    let visited_nodes = ref String.Set.empty in
     let results =
       List.map (!t.root :: !t.operators) ~f:(fun node_ref ->
           find_helper node_ref visited_nodes)
@@ -679,8 +675,7 @@ module Permission_DAG = struct
           | Node.Always -> true
           | Node.Never -> false
           | Node.Attribute_required attribute ->
-              List.exists attributes_held ~f:(fun attribute_candidate ->
-                  Node.equal (Attribute attribute) attribute_candidate)
+              String.Set.mem attributes_held (Node.name (Attribute attribute))
           | And (cond1, cond2) ->
               met_conditions_helper cond1 && met_conditions_helper cond2
           | Or (cond1, cond2) ->
@@ -699,7 +694,8 @@ module Permission_DAG = struct
               attributes_held :=
                 match current_node.node with
                 | Any (Attribute attribute) ->
-                    Node.Attribute attribute :: !attributes_held
+                    String.Set.add !attributes_held
+                      (Node.name (Attribute attribute))
                 | _ -> !attributes_held
             in
             let in_operator =
@@ -727,7 +723,7 @@ module Permission_DAG = struct
             |> List.exists ~f:(fun res -> res)
     in
     match find_node t operator with
-    | Some operator_ref -> helper !operator_ref (ref [])
+    | Some operator_ref -> helper !operator_ref (ref String.Set.empty)
     | None ->
         raise_s
           [%message
@@ -937,12 +933,11 @@ let delete_permission_edge t ~operator ~node =
 let can_access t ~operator ~node =
   let { name = _; position_tree; permission_dag } = t in
   let rec helper (current_node : Position_tree.t) visited =
-    if
-      List.exists !visited ~f:(fun node ->
-          any_node_equal current_node.node node)
-    then false
+    if String.Set.mem !visited (any_to_string current_node.node) then false
     else
-      let () = visited := current_node.node :: !visited in
+      let () =
+        visited := String.Set.add !visited (any_to_string current_node.node)
+      in
       if any_node_equal current_node.node (Any node) then true
       else
         List.map current_node.children ~f:(fun child_ref ->
@@ -958,7 +953,7 @@ let can_access t ~operator ~node =
         |> List.exists ~f:(fun result -> result)
   in
   match Position_tree.find_parent position_tree operator with
-  | Some parent -> helper !parent (ref [])
+  | Some parent -> helper !parent (ref String.Set.empty)
   | None ->
       raise_s
         [%message
