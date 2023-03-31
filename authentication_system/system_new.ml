@@ -402,6 +402,7 @@ module Permission_DAG = struct
 
   let add_dag_node t (type a) ~(node_to_add : a Node.t) (type b)
       ~(parent : b Node.t) =
+    (* print_endline "Adding new node"; *)
     (* let () = print_s [%message (Any node_to_add : any_node)] in *)
     match parent with
     | Operator _ ->
@@ -430,8 +431,9 @@ module Permission_DAG = struct
         }
     | _ ->
         let rec add_helper current_node visited_nodes =
+          (* print_s [%sexp (!current_node.node : any_node)]; *)
           let { node; _ } = !current_node in
-          if Set.mem !visited_nodes (any_to_string node) then current_node
+          if Set.mem !visited_nodes (any_to_string node) then false
           else if any_node_equal node (Any parent) then
             let () =
               current_node :=
@@ -447,30 +449,28 @@ module Permission_DAG = struct
                     :: !current_node.nodes_to;
                 }
             in
-            current_node
+            true
           else
             let () =
               visited_nodes :=
                 String.Set.add !visited_nodes (any_to_string node)
             in
-            let () =
-              current_node :=
-                {
-                  !current_node with
-                  nodes_to =
-                    List.map !current_node.nodes_to ~f:(fun neighbour ->
-                        add_helper neighbour visited_nodes);
-                }
-            in
-            current_node
+
+            List.exists !current_node.nodes_to ~f:(fun neighbour ->
+                add_helper neighbour visited_nodes)
         in
+
         let visited = ref String.Set.empty in
-        let root = add_helper t.root visited in
-        let operators =
-          List.map t.operators ~f:(fun operator_ref ->
-              add_helper operator_ref visited)
+        let found = add_helper t.root visited in
+        let () =
+          if not found then
+            let _ =
+              List.exists t.operators ~f:(fun operator_ref ->
+                  add_helper operator_ref visited)
+            in
+            ()
         in
-        { root; operators }
+        t
 
   let find t ~f =
     let rec find_helper current_node visited_nodes =
@@ -481,21 +481,20 @@ module Permission_DAG = struct
         let () =
           visited_nodes := String.Set.add !visited_nodes (any_to_string node)
         in
-        let results =
-          List.map !current_node.nodes_to ~f:(fun node_ref ->
-              find_helper node_ref visited_nodes)
-        in
-        List.find results ~f:Option.is_some |> Option.join
+
+        List.find_map !current_node.nodes_to ~f:(fun node_ref ->
+            find_helper node_ref visited_nodes)
     in
+
     let visited_nodes = ref String.Set.empty in
-    let results =
-      List.map (!t.root :: !t.operators) ~f:(fun node_ref ->
-          find_helper node_ref visited_nodes)
-    in
-    List.find results ~f:Option.is_some |> Option.join
+
+    List.find_map (!t.root :: !t.operators) ~f:(fun node_ref ->
+        find_helper node_ref visited_nodes)
 
   let find_all_nodes t nodes_to_find =
+    (* print_endline "Finding new nodes"; *)
     let rec find_helper current_node visited_nodes found_nodes =
+      (* print_s [%sexp (!current_node.node : any_node)]; *)
       if String.Set.length nodes_to_find = List.length !found_nodes then ()
       else
         let { node; _ } = !current_node in
@@ -508,14 +507,19 @@ module Permission_DAG = struct
           let () =
             visited_nodes := String.Set.add !visited_nodes (any_to_string node)
           in
-          List.iter !current_node.nodes_to ~f:(fun node_ref ->
-              find_helper node_ref visited_nodes found_nodes)
+          let _ =
+            List.exists !current_node.nodes_to ~f:(fun node_ref ->
+                find_helper node_ref visited_nodes found_nodes;
+                String.Set.length nodes_to_find = List.length !found_nodes)
+          in
+          ()
     in
     let visited_nodes = ref String.Set.empty in
     let found_nodes = ref [] in
-    let () =
-      List.iter (!t.root :: !t.operators) ~f:(fun node_ref ->
-          find_helper node_ref visited_nodes found_nodes)
+    let _ =
+      List.exists (!t.root :: !t.operators) ~f:(fun node_ref ->
+          find_helper node_ref visited_nodes found_nodes;
+          String.Set.length nodes_to_find = List.length !found_nodes)
     in
     if String.Set.length nodes_to_find = List.length !found_nodes then
       !found_nodes

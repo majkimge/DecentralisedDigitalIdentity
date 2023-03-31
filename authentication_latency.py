@@ -37,13 +37,20 @@ def attribute_text(WIDTH, DEPTH):
 
 
 if __name__ == "__main__":
-    for j in range(8, 10):
+    for j in range(7, 8):
+        width = j * 10
+        if width == 0:
+            width = 1
         text = (
             "create system Latency as Tester_admin\ncreate attribute handler Latency_handler\n"
-            + attribute_text(10, (j + 1) * 10)
+            + attribute_text(20, width)
         )
         # print(text)
         write_commands(text.rstrip("\n"))
+        execute_ocaml()
+        write_commands(
+            "select system Latency as Tester_admin\nmove Tester_admin to Resource_0"
+        )
         for i in range(10):
             try:
                 execute_ocaml()

@@ -1,10 +1,2 @@
-join system Cambridge as College_admin
-create attribute handler College_handler
-create attribute College_member under attribute handler College_handler
-create attribute Internal_ticket under attribute handler College_handler granted automatically if College_member
-create attribute External_ticket under attribute handler College_handler granted automatically if Student or Professor or Postdoc or Internal_ticket
-create organisation College
-create location main_court in organisation College with entrances to world
-create location college_meeting_room in location main_court with entrances to main_court
-grant access to location main_court with attribute External_ticket 
-grant access to location college_meeting_room with attribute Internal_ticket
+select system Latency as Tester_admin
+move Tester_admin to Resource_0
