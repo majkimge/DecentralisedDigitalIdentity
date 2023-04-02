@@ -29,7 +29,7 @@ type token =
 
 open Parsing;;
 let _ = parse_error;;
-# 1 "dsl/parser.mly"
+# 1 "src/dsl/parser.mly"
  
     let file_exists = Sys.file_exists "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin"
     open! Core
@@ -46,7 +46,7 @@ let _ = parse_error;;
         |None -> raise_s [%message "No system with that name in the table" (name:string) (system_table:System_new.t String.Map.t ref)]
     let update_selected_system system = update_system (!selected_system) system
     let get_selected_system () = get_system (!selected_system);;
-# 50 "dsl/parser.ml"
+# 50 "src/dsl/parser.ml"
 let yytransl_const = [|
   257 (* CREATE *);
   258 (* MOVE *);
@@ -270,30 +270,30 @@ let yyact = [|
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'init_line) in
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'lines) in
     Obj.repr(
-# 35 "dsl/parser.mly"
-                            ( Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; print_string "PrintingPtint";
+# 35 "src/dsl/parser.mly"
+                            ( Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; 
                                               _2
                                              )
-# 278 "dsl/parser.ml"
+# 278 "src/dsl/parser.ml"
                : Authentication_system.System_new.t))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 40 "dsl/parser.mly"
+# 40 "src/dsl/parser.mly"
                 ()
-# 284 "dsl/parser.ml"
+# 284 "src/dsl/parser.ml"
                : 'empty_lines))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'empty_lines) in
     Obj.repr(
-# 41 "dsl/parser.mly"
+# 41 "src/dsl/parser.mly"
                      ()
-# 291 "dsl/parser.ml"
+# 291 "src/dsl/parser.ml"
                : 'empty_lines))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 44 "dsl/parser.mly"
+# 44 "src/dsl/parser.mly"
                             (
                                 let admin = System_new.Node.operator _5 in
                                 let system = System_new.create admin _3 in 
@@ -302,25 +302,25 @@ let yyact = [|
                                 let () = selected_operator := admin in
                                 system
                             )
-# 306 "dsl/parser.ml"
+# 306 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 52 "dsl/parser.mly"
+# 52 "src/dsl/parser.mly"
                                   (
                                 let () = selected_system := _3 in 
                                 let () = selected_operator := System_new.Node.operator _5 in
                                 get_system _3
                             )
-# 318 "dsl/parser.ml"
+# 318 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 57 "dsl/parser.mly"
+# 57 "src/dsl/parser.mly"
                                 (
                                 let () = selected_system := _3 in 
                                 let operator = System_new.Node.operator _5 in
@@ -330,25 +330,25 @@ let yyact = [|
                                 let () = update_system _3 system in 
                                 system
                             )
-# 334 "dsl/parser.ml"
+# 334 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 71 "dsl/parser.mly"
+# 71 "src/dsl/parser.mly"
                                (
                                 let organisation = System_new.Node.organisation _3 in
                                 let system = get_selected_system () in
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent:System_new.root_node
                             )
-# 346 "dsl/parser.ml"
+# 346 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 77 "dsl/parser.mly"
+# 77 "src/dsl/parser.mly"
                                                  (
                                 let organisation = System_new.Node.organisation _3 in
                                 let system = get_selected_system () in
@@ -356,13 +356,13 @@ let yyact = [|
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent
                             )
-# 360 "dsl/parser.ml"
+# 360 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 84 "dsl/parser.mly"
+# 84 "src/dsl/parser.mly"
                                              (
                                 let organisation = System_new.Node.organisation _3 in
                                 let system = get_selected_system () in
@@ -370,14 +370,14 @@ let yyact = [|
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent
                             )
-# 374 "dsl/parser.ml"
+# 374 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _8 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
     Obj.repr(
-# 92 "dsl/parser.mly"
+# 92 "src/dsl/parser.mly"
                                                                              (
                                 let location = System_new.Node.location _3 in
                                 let system = get_selected_system () in
@@ -385,14 +385,14 @@ let yyact = [|
                                 System_new.add_location system location ~parent
                                     ~entrances:_8
                             )
-# 389 "dsl/parser.ml"
+# 389 "src/dsl/parser.ml"
                : 'add_location_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _8 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
     Obj.repr(
-# 99 "dsl/parser.mly"
+# 99 "src/dsl/parser.mly"
                                                                           (
                                 let location = System_new.Node.location _3 in
                                 let system = get_selected_system () in
@@ -400,97 +400,97 @@ let yyact = [|
                                 System_new.add_location system location ~parent
                                     ~entrances:_8
                             )
-# 404 "dsl/parser.ml"
+# 404 "src/dsl/parser.ml"
                : 'add_location_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 107 "dsl/parser.mly"
+# 107 "src/dsl/parser.mly"
              ([System_new.Node.location _1])
-# 411 "dsl/parser.ml"
+# 411 "src/dsl/parser.ml"
                : 'location_list))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
     Obj.repr(
-# 108 "dsl/parser.mly"
+# 108 "src/dsl/parser.mly"
                              ((System_new.Node.location _1) :: _3)
-# 419 "dsl/parser.ml"
+# 419 "src/dsl/parser.ml"
                : 'location_list))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 111 "dsl/parser.mly"
+# 111 "src/dsl/parser.mly"
                            (
                                 let operator = System_new.Node.operator _3 in
                                 let system = get_selected_system () in
                                 System_new.add_operator system ~operator
                             )
-# 430 "dsl/parser.ml"
+# 430 "src/dsl/parser.ml"
                : 'add_operator_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 119 "dsl/parser.mly"
+# 119 "src/dsl/parser.mly"
                 (let system = get_selected_system () in
                 let attribute_id = System_new.Node.attribute_id _1 in
                 System_new.Node.Attribute_required (System_new.get_attribute_by_id system attribute_id))
-# 439 "dsl/parser.ml"
+# 439 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'attribute_condition) in
     Obj.repr(
-# 122 "dsl/parser.mly"
+# 122 "src/dsl/parser.mly"
                                        (_2)
-# 446 "dsl/parser.ml"
+# 446 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'attribute_condition) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'attribute_condition) in
     Obj.repr(
-# 123 "dsl/parser.mly"
+# 123 "src/dsl/parser.mly"
                                                  (System_new.Node.And (_1, _3))
-# 454 "dsl/parser.ml"
+# 454 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'attribute_condition) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'attribute_condition) in
     Obj.repr(
-# 124 "dsl/parser.mly"
+# 124 "src/dsl/parser.mly"
                                                 (System_new.Node.Or (_1, _3))
-# 462 "dsl/parser.ml"
+# 462 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 127 "dsl/parser.mly"
+# 127 "src/dsl/parser.mly"
                     (System_new.Node.Never)
-# 468 "dsl/parser.ml"
+# 468 "src/dsl/parser.ml"
                : 'with_attribute_condition))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'attribute_condition) in
     Obj.repr(
-# 128 "dsl/parser.mly"
+# 128 "src/dsl/parser.mly"
                                                       (_2)
-# 475 "dsl/parser.ml"
+# 475 "src/dsl/parser.ml"
                : 'with_attribute_condition))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : 'with_attribute_condition) in
     Obj.repr(
-# 131 "dsl/parser.mly"
+# 131 "src/dsl/parser.mly"
                                                            (
                                 let attribute_maintainer = System_new.Node.attribute_maintainer _3 _4 in
                                 let system = get_selected_system () in
                                 System_new.add_attribute_maintainer_under_operator system ~attribute_maintainer ~operator:(!selected_operator)
                             )
-# 487 "dsl/parser.ml"
+# 487 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _7 = (Parsing.peek_val __caml_parser_env 0 : 'with_attribute_condition) in
     Obj.repr(
-# 136 "dsl/parser.mly"
+# 136 "src/dsl/parser.mly"
                                                                                      (
                                 let attribute_maintainer = System_new.Node.attribute_maintainer _3 _7 in
                                 let system = get_selected_system () in
@@ -500,14 +500,14 @@ let yyact = [|
                                 System_new.add_attribute_maintainer_under_maintainer system 
                                 ~attribute_maintainer ~attribute_maintainer_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer parent_maintainer)
                             )
-# 504 "dsl/parser.ml"
+# 504 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 1 : string) in
     let _7 = (Parsing.peek_val __caml_parser_env 0 : 'with_attribute_condition) in
     Obj.repr(
-# 147 "dsl/parser.mly"
+# 147 "src/dsl/parser.mly"
                                                                             (
                                 let attribute = System_new.Node.attribute _3 _7 in
                                 let system = get_selected_system () in
@@ -516,74 +516,74 @@ let yyact = [|
                                 System_new.add_attribute system ~attribute ~attribute_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer attribute_maintainer)
 
                             )
-# 520 "dsl/parser.ml"
+# 520 "src/dsl/parser.ml"
                : 'add_attribute_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_location_line) in
     Obj.repr(
-# 156 "dsl/parser.mly"
+# 156 "src/dsl/parser.mly"
                       (_1)
-# 527 "dsl/parser.ml"
+# 527 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_organisation_line) in
     Obj.repr(
-# 157 "dsl/parser.mly"
+# 157 "src/dsl/parser.mly"
                            (_1)
-# 534 "dsl/parser.ml"
+# 534 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_operator_line) in
     Obj.repr(
-# 158 "dsl/parser.mly"
+# 158 "src/dsl/parser.mly"
                        (_1)
-# 541 "dsl/parser.ml"
+# 541 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_attribute_handler_line) in
     Obj.repr(
-# 159 "dsl/parser.mly"
+# 159 "src/dsl/parser.mly"
                                 (_1)
-# 548 "dsl/parser.ml"
+# 548 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_attribute_line) in
     Obj.repr(
-# 160 "dsl/parser.mly"
+# 160 "src/dsl/parser.mly"
                         (_1)
-# 555 "dsl/parser.ml"
+# 555 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 163 "dsl/parser.mly"
+# 163 "src/dsl/parser.mly"
                                        (let to_ =  System_new.Node.organisation _5 in 
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 568 "dsl/parser.ml"
+# 568 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 169 "dsl/parser.mly"
+# 169 "src/dsl/parser.mly"
                                     (let to_ =  System_new.Node.location _5 in 
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 581 "dsl/parser.ml"
+# 581 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 175 "dsl/parser.mly"
+# 175 "src/dsl/parser.mly"
                            (
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
@@ -592,13 +592,13 @@ let yyact = [|
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 596 "dsl/parser.ml"
+# 596 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 183 "dsl/parser.mly"
+# 183 "src/dsl/parser.mly"
                                    (
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
@@ -608,13 +608,13 @@ let yyact = [|
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 612 "dsl/parser.ml"
+# 612 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 192 "dsl/parser.mly"
+# 192 "src/dsl/parser.mly"
                                                        (
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
@@ -623,13 +623,13 @@ let yyact = [|
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 627 "dsl/parser.ml"
+# 627 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 200 "dsl/parser.mly"
+# 200 "src/dsl/parser.mly"
                                                    (
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
@@ -637,13 +637,13 @@ let yyact = [|
                                         let to_ = System_new.Node.location _4 in
                                         System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
                                         )
-# 641 "dsl/parser.ml"
+# 641 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 209 "dsl/parser.mly"
+# 209 "src/dsl/parser.mly"
                                     (
                                         let operator = System_new.Node.operator _2 in 
                                         let system = get_selected_system () in 
@@ -651,60 +651,60 @@ let yyact = [|
                                         System_new.move_operator system ~operator ~to_
 
                                     )
-# 655 "dsl/parser.ml"
+# 655 "src/dsl/parser.ml"
                : 'move_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_line) in
     Obj.repr(
-# 218 "dsl/parser.mly"
+# 218 "src/dsl/parser.mly"
                (let () = update_selected_system _1 in _1)
-# 662 "dsl/parser.ml"
+# 662 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'grant_line) in
     Obj.repr(
-# 219 "dsl/parser.mly"
+# 219 "src/dsl/parser.mly"
                  (let () = update_selected_system _1 in _1)
-# 669 "dsl/parser.ml"
+# 669 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'init_line) in
     Obj.repr(
-# 220 "dsl/parser.mly"
+# 220 "src/dsl/parser.mly"
                  (_1)
-# 676 "dsl/parser.ml"
+# 676 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'move_line) in
     Obj.repr(
-# 221 "dsl/parser.mly"
+# 221 "src/dsl/parser.mly"
                 (let () = update_selected_system _1 in _1)
-# 683 "dsl/parser.ml"
+# 683 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'empty_lines) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'content_line) in
     Obj.repr(
-# 224 "dsl/parser.mly"
+# 224 "src/dsl/parser.mly"
                              (
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json _2);
       _2)
-# 694 "dsl/parser.ml"
+# 694 "src/dsl/parser.ml"
                : 'line))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 229 "dsl/parser.mly"
+# 229 "src/dsl/parser.mly"
               (get_selected_system ())
-# 700 "dsl/parser.ml"
+# 700 "src/dsl/parser.ml"
                : 'lines))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'lines) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'line) in
     Obj.repr(
-# 230 "dsl/parser.mly"
+# 230 "src/dsl/parser.mly"
                     (_3)
-# 708 "dsl/parser.ml"
+# 708 "src/dsl/parser.ml"
                : 'lines))
 (* Entry main *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))

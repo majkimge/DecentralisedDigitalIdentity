@@ -32,7 +32,7 @@
 %%
 main:
         
-    |init_line lines EOF    { Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; print_string "PrintingPtint";
+    |init_line lines EOF    { Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; 
                                               $2
                                              }
 ;

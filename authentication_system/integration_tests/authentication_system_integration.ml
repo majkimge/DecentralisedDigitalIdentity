@@ -1,4 +1,5 @@
 open! Core
+open Authentication_system
 
 let%expect_test "Pembroke_test" =
   let admin = System_new.Node.operator "admin" in

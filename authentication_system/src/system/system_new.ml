@@ -989,6 +989,7 @@ let delete_permission_edge t ~operator ~node =
 let can_access t ~operator ~node =
   let { name = _; position_tree; permission_dag } = t in
   let rec helper (current_node : Position_tree.t) visited =
+    print_s [%sexp (current_node.node : any_node)];
     if String.Set.mem !visited (any_to_string current_node.node) then false
     else
       let () =
