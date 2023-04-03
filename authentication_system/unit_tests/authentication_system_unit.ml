@@ -206,5 +206,6 @@ let%expect_test "move_operator_fail" =
         ~to_:test_location1
     in
     ()
-  with _ -> print_endline "No permission";
-  [%expect {| No permission |}]
+  with _ ->
+    print_endline "No permission";
+    [%expect {| No permission |}]
