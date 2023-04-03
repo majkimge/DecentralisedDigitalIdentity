@@ -20,11 +20,12 @@ import assert from 'assert';
     const { Network, Page, Runtime } = protocol;
     await Page.enable();
     await Page.navigate({ url: 'http://localhost:3000/' });
-    const full_flow = `await new Promise(r => setTimeout(r, 2000));;document.querySelector('#accountInput').value = 'tt';
+    const full_flow = `await new Promise(r => setTimeout(r, 2000));document.querySelector('#accountInput').value = 'tt';
     document.querySelector('#accountSubmit').click();
     document.querySelector('#accountList').outerHTML;`
     const login_flow = `document.querySelector('#passwordInput').value = 'abc';
     document.querySelector('#passwordSubmit').click();`
+
 
     const check_flow = `document.querySelector('#permissions').outerHTML;`
 
