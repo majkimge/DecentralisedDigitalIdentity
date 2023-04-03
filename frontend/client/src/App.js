@@ -272,15 +272,13 @@ class EssayForm extends React.Component {
     event.preventDefault();
   }
 
-
-
   render() {
     return (
       <form onSubmit={this.handleSubmit}>
         <label>
 
-          <textarea value={this.state.value} onChange={this.handleChange} rows={10} style={{ width: 500 }} />        </label>
-        <input type="submit" value="Submit" />
+          <textarea id="commandInput" value={this.state.value} onChange={this.handleChange} rows={10} style={{ width: 500 }} />        </label>
+        <input id="commandSubmit" type="submit" value="Submit" />
       </form>
     );
   }
@@ -358,7 +356,7 @@ class AddressList extends React.Component {
     const listItems = accounts.map((d) => <li key={d.name} style={{ fontSize: 20 }}>{d.name + ": 0x" + (d.publicKey).slice(0, 5) + "..."}</li>);
 
     return (
-      <div>
+      <div id="accountList">
         {listItems}
       </div>
     );
@@ -422,12 +420,12 @@ class RegisterWindow extends React.Component {
 
   render() {
     return (
-      <div>
+      <div id="registerDiv">
         Register
         <form onSubmit={this.handleSubmit}>        <label>
           Password:
-          <input type="password" value={this.state.value} onChange={this.handleChange} />        </label>
-          <input type="submit" value="Submit" />
+          <input id="passwordInput" type="password" value={this.state.value} onChange={this.handleChange} />        </label>
+          <input id="passwordSubmit" type="submit" value="Submit" />
         </form>
       </div>
 
@@ -556,9 +554,6 @@ class AddNewKeyRow extends React.Component {
         this.props.updateAccounts(accountList);
       }
     })()
-
-
-
     event.preventDefault();
   }
 
@@ -568,8 +563,8 @@ class AddNewKeyRow extends React.Component {
         Add new account
         <form onSubmit={this.handleSubmit}>        <label>
           Name:
-          <input type="text" value={this.state.value} onChange={this.handleChange} />        </label>
-          <input type="submit" value="Submit" />
+          <input id="accountInput" type="text" value={this.state.value} onChange={this.handleChange} />        </label>
+          <input id="accountSubmit" type="submit" value="Submit" />
         </form>
       </div>
 
@@ -612,7 +607,7 @@ function App() {
 
           <div style={{ flex: 3 }}>
             All Permissions
-            <div ref={permission_dag_svg} />
+            <div id="permissions" ref={permission_dag_svg} />
           </div>
 
           <div style={{ flex: 3 }}>
