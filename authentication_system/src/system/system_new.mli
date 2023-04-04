@@ -22,26 +22,34 @@ module Node : sig
   }
   [@@deriving compare, equal, sexp_of]
 
-  type _ t =
-    | Operator : operator -> operator t
-    | Location : location -> location t
-    | Organisation : organisation -> organisation t
-    | Attribute_maintainer : attribute_maintainer -> attribute_maintainer t
-    | Attribute : attribute -> attribute t
+  type (_, _) t =
+    | Operator : operator -> (operator, operator) t
+    | Location : location -> (location, organisation) t
+    | Organisation : organisation -> (organisation, organisation) t
+    | Attribute_maintainer :
+        attribute_maintainer
+        -> (attribute_maintainer, attribute_maintainer) t
+    | Attribute : attribute -> (attribute, attribute_maintainer) t
   [@@deriving sexp_of]
 
   val attribute_id : string -> attribute_id
-  val location : string -> location t
-  val operator : string -> operator t
-  val organisation : string -> organisation t
-  val attribute : string -> attribute_condition -> attribute t
-  val attribute_node_of_attribute : attribute -> attribute t
+  val location : string -> (location, organisation) t
+  val operator : string -> (operator, operator) t
+  val organisation : string -> (organisation, organisation) t
+
+  val attribute :
+    string -> attribute_condition -> (attribute, attribute_maintainer) t
+
+  val attribute_node_of_attribute :
+    attribute -> (attribute, attribute_maintainer) t
 
   val attribute_maintainer :
-    string -> attribute_condition -> attribute_maintainer t
+    string ->
+    attribute_condition ->
+    (attribute_maintainer, attribute_maintainer) t
 
   val attribute_maintainer_node_of_attribute_maintainer :
-    attribute_maintainer -> attribute_maintainer t
+    attribute_maintainer -> (attribute_maintainer, attribute_maintainer) t
 end
 
 module Position_tree : sig
@@ -59,53 +67,68 @@ type t = {
 }
 [@@deriving sexp_of]
 
-val create : Node.operator Node.t -> string -> t
-val root_node : Node.location Node.t
+val create : (Node.operator, Node.operator) Node.t -> string -> t
+val root_node : (Node.location, Node.organisation) Node.t
 
 val add_location :
   t ->
-  Node.location Node.t ->
-  parent:'a Node.t ->
-  entrances:Node.location Node.t list ->
+  (Node.location, Node.organisation) Node.t ->
+  parent:('a, 'b) Node.t ->
+  entrances:(Node.location, Node.organisation) Node.t list ->
   t
 
 val add_organisation :
   t ->
-  maintainer:Node.operator Node.t ->
-  organisation:Node.organisation Node.t ->
-  parent:'a Node.t ->
+  maintainer:(Node.operator, Node.operator) Node.t ->
+  organisation:(Node.organisation, Node.organisation) Node.t ->
+  parent:('a, 'b) Node.t ->
   t
 
-val add_operator : t -> operator:Node.operator Node.t -> t
+val add_operator : t -> operator:(Node.operator, Node.operator) Node.t -> t
 
 val add_attribute :
   t ->
-  attribute:Node.attribute Node.t ->
-  attribute_maintainer:Node.attribute_maintainer Node.t ->
+  attribute:(Node.attribute, Node.attribute_maintainer) Node.t ->
+  attribute_maintainer:
+    (Node.attribute_maintainer, Node.attribute_maintainer) Node.t ->
   t
 
 val add_attribute_maintainer_under_operator :
   t ->
-  attribute_maintainer:Node.attribute_maintainer Node.t ->
-  operator:Node.operator Node.t ->
+  attribute_maintainer:
+    (Node.attribute_maintainer, Node.attribute_maintainer) Node.t ->
+  operator:(Node.operator, Node.operator) Node.t ->
   t
 
 val add_attribute_maintainer_under_maintainer :
   t ->
-  attribute_maintainer:Node.attribute_maintainer Node.t ->
-  attribute_maintainer_maintainer:Node.attribute_maintainer Node.t ->
+  attribute_maintainer:
+    (Node.attribute_maintainer, Node.attribute_maintainer) Node.t ->
+  attribute_maintainer_maintainer:
+    (Node.attribute_maintainer, Node.attribute_maintainer) Node.t ->
   t
 
 val add_permission_edge :
-  t -> operator:Node.operator Node.t -> from:'a Node.t -> to_:'b Node.t -> t
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  from:('a, 'b) Node.t ->
+  to_:('c, 'd) Node.t ->
+  t
 
 val delete_permission_edge :
-  t -> operator:Node.operator Node.t -> node:'a Node.t -> t
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  node:('a, 'b) Node.t ->
+  t
 
-val move_operator : t -> operator:Node.operator Node.t -> to_:'a Node.t -> t
+val move_operator :
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  to_:('a, 'b) Node.t ->
+  t
 (*
-    val routes : t -> Node.location Node.t -> Node.location Node.t list list
-    val delete_location : t -> Node.location Node.t -> t
+    val routes : t -> (Node.location, Node.organisation) Node.t -> (Node.location, Node.organisation) Node.t list list
+    val delete_location : t -> (Node.location, Node.organisation) Node.t -> t
 *)
 
 val get_attribute_by_id : t -> Node.attribute_id -> Node.attribute
