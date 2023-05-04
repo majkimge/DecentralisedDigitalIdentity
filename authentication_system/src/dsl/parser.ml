@@ -7,11 +7,11 @@ type token =
   | ACCESS_TO
   | REVOKE
   | SYSTEM
-  | LOCATION
-  | ORGANISATION
+  | RESOURCE
+  | RESOURCE_HANDLER
   | ATTRIBUTE
   | ATTRIBUTE_HANDLER
-  | OPERATOR
+  | AGENT
   | IN
   | UNDER
   | TO
@@ -39,7 +39,7 @@ let _ = parse_error;;
     let () = (if file_exists then 
         system_table:= (Marshal.from_channel (In_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") : System_new.t String.Map.t))
     let selected_system = ref ("")
-    let selected_operator = ref (System_new.Node.operator "")
+    let selected_agent = ref (System_new.Node.agent "")
     let update_system system_name system = 
         system_table := Map.update (!system_table) system_name ~f:(fun _ -> system)
     let get_system name = match Map.find (!system_table) name with 
@@ -57,11 +57,11 @@ let yytransl_const = [|
   262 (* ACCESS_TO *);
   263 (* REVOKE *);
   264 (* SYSTEM *);
-  265 (* LOCATION *);
-  266 (* ORGANISATION *);
+  265 (* RESOURCE *);
+  266 (* RESOURCE_HANDLER *);
   267 (* ATTRIBUTE *);
   268 (* ATTRIBUTE_HANDLER *);
-  269 (* OPERATOR *);
+  269 (* AGENT *);
   270 (* IN *);
   271 (* UNDER *);
   272 (* TO *);
@@ -253,11 +253,11 @@ let yynames_const = "\
   ACCESS_TO\000\
   REVOKE\000\
   SYSTEM\000\
-  LOCATION\000\
-  ORGANISATION\000\
+  RESOURCE\000\
+  RESOURCE_HANDLER\000\
   ATTRIBUTE\000\
   ATTRIBUTE_HANDLER\000\
-  OPERATOR\000\
+  AGENT\000\
   IN\000\
   UNDER\000\
   TO\000\
@@ -309,11 +309,11 @@ let yyact = [|
     Obj.repr(
 # 44 "src/dsl/parser.mly"
                             (
-                                let admin = System_new.Node.operator _5 in
+                                let admin = System_new.Node.agent _5 in
                                 let system = System_new.create admin _3 in 
                                 let () = selected_system := _3 in 
                                 let () = update_system _3 system in 
-                                let () = selected_operator := admin in
+                                let () = selected_agent := admin in
                                 system
                             )
 # 320 "src/dsl/parser.ml"
@@ -325,7 +325,7 @@ let yyact = [|
 # 52 "src/dsl/parser.mly"
                                   (
                                 let () = selected_system := _3 in 
-                                let () = selected_operator := System_new.Node.operator _5 in
+                                let () = selected_agent := System_new.Node.agent _5 in
                                 get_system _3
                             )
 # 332 "src/dsl/parser.ml"
@@ -337,10 +337,10 @@ let yyact = [|
 # 57 "src/dsl/parser.mly"
                                 (
                                 let () = selected_system := _3 in 
-                                let operator = System_new.Node.operator _5 in
+                                let agent = System_new.Node.agent _5 in
                                 let system = get_system _3 in
-                                let system = System_new.add_operator system ~operator in
-                                let () = selected_operator := operator in
+                                let system = System_new.add_agent system ~agent in
+                                let () = selected_agent := agent in
                                 let () = update_system _3 system in 
                                 system
                             )
@@ -350,98 +350,98 @@ let yyact = [|
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 71 "src/dsl/parser.mly"
-                               (
-                                let organisation = System_new.Node.organisation _3 in
+                                   (
+                                let resource_handler = System_new.Node.resource_handler _3 in
                                 let system = get_selected_system () in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent:System_new.root_node
                             )
 # 360 "src/dsl/parser.ml"
-               : 'add_organisation_line))
+               : 'add_resource_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 77 "src/dsl/parser.mly"
-                                                 (
-                                let organisation = System_new.Node.organisation _3 in
+                                                         (
+                                let resource_handler = System_new.Node.resource_handler _3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.organisation _6 in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                let parent = System_new.Node.resource_handler _6 in
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent
                             )
 # 374 "src/dsl/parser.ml"
-               : 'add_organisation_line))
+               : 'add_resource_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 84 "src/dsl/parser.mly"
-                                             (
-                                let organisation = System_new.Node.organisation _3 in
+                                                 (
+                                let resource_handler = System_new.Node.resource_handler _3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.location _6 in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                let parent = System_new.Node.resource _6 in
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent
                             )
 # 388 "src/dsl/parser.ml"
-               : 'add_organisation_line))
+               : 'add_resource_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 2 : string) in
-    let _8 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
+    let _8 = (Parsing.peek_val __caml_parser_env 0 : 'resource_list) in
     Obj.repr(
 # 92 "src/dsl/parser.mly"
-                                                                             (
-                                let location = System_new.Node.location _3 in
+                                                                                 (
+                                let resource = System_new.Node.resource _3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.organisation _6 in
-                                System_new.add_location system location ~parent
+                                let parent = System_new.Node.resource_handler _6 in
+                                System_new.add_resource system resource ~parent
                                     ~entrances:_8
                             )
 # 403 "src/dsl/parser.ml"
-               : 'add_location_line))
+               : 'add_resource_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
     let _6 = (Parsing.peek_val __caml_parser_env 2 : string) in
-    let _8 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
+    let _8 = (Parsing.peek_val __caml_parser_env 0 : 'resource_list) in
     Obj.repr(
 # 99 "src/dsl/parser.mly"
                                                                           (
-                                let location = System_new.Node.location _3 in
+                                let resource = System_new.Node.resource _3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.location _6 in
-                                System_new.add_location system location ~parent
+                                let parent = System_new.Node.resource _6 in
+                                System_new.add_resource system resource ~parent
                                     ~entrances:_8
                             )
 # 418 "src/dsl/parser.ml"
-               : 'add_location_line))
+               : 'add_resource_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 107 "src/dsl/parser.mly"
-             ([System_new.Node.location _1])
+             ([System_new.Node.resource _1])
 # 425 "src/dsl/parser.ml"
-               : 'location_list))
+               : 'resource_list))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : string) in
-    let _3 = (Parsing.peek_val __caml_parser_env 0 : 'location_list) in
+    let _3 = (Parsing.peek_val __caml_parser_env 0 : 'resource_list) in
     Obj.repr(
 # 108 "src/dsl/parser.mly"
-                             ((System_new.Node.location _1) :: _3)
+                             ((System_new.Node.resource _1) :: _3)
 # 433 "src/dsl/parser.ml"
-               : 'location_list))
+               : 'resource_list))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 111 "src/dsl/parser.mly"
-                           (
-                                let operator = System_new.Node.operator _3 in
+                        (
+                                let agent = System_new.Node.agent _3 in
                                 let system = get_selected_system () in
-                                System_new.add_operator system ~operator
+                                System_new.add_agent system ~agent
                             )
 # 444 "src/dsl/parser.ml"
-               : 'add_operator_line))
+               : 'add_agent_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
@@ -493,9 +493,9 @@ let yyact = [|
     Obj.repr(
 # 131 "src/dsl/parser.mly"
                                                            (
-                                let attribute_maintainer = System_new.Node.attribute_maintainer _3 _4 in
+                                let attribute_handler = System_new.Node.attribute_handler _3 _4 in
                                 let system = get_selected_system () in
-                                System_new.add_attribute_maintainer_under_operator system ~attribute_maintainer ~operator:(!selected_operator)
+                                System_new.add_attribute_handler_under_agent system ~attribute_handler ~agent:(!selected_agent)
                             )
 # 501 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
@@ -506,13 +506,13 @@ let yyact = [|
     Obj.repr(
 # 136 "src/dsl/parser.mly"
                                                                                      (
-                                let attribute_maintainer = System_new.Node.attribute_maintainer _3 _7 in
+                                let attribute_handler = System_new.Node.attribute_handler _3 _7 in
                                 let system = get_selected_system () in
                                 let attribute_id = System_new.Node.attribute_id _6 in
 
-                                let parent_maintainer = System_new.get_attribute_maintainer_by_id system attribute_id in
-                                System_new.add_attribute_maintainer_under_maintainer system 
-                                ~attribute_maintainer ~attribute_maintainer_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer parent_maintainer)
+                                let parent_maintainer = System_new.get_attribute_handler_by_id system attribute_id in
+                                System_new.add_attribute_handler_under_maintainer system 
+                                ~attribute_handler ~attribute_handler_maintainer:(System_new.Node.attribute_handler_node_of_attribute_handler parent_maintainer)
                             )
 # 518 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
@@ -526,31 +526,31 @@ let yyact = [|
                                 let attribute = System_new.Node.attribute _3 _7 in
                                 let system = get_selected_system () in
                                 let attribute_id = System_new.Node.attribute_id _6 in
-                                let attribute_maintainer = System_new.get_attribute_maintainer_by_id system attribute_id in
-                                System_new.add_attribute system ~attribute ~attribute_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer attribute_maintainer)
+                                let attribute_handler = System_new.get_attribute_handler_by_id system attribute_id in
+                                System_new.add_attribute system ~attribute ~attribute_handler:(System_new.Node.attribute_handler_node_of_attribute_handler attribute_handler)
 
                             )
 # 534 "src/dsl/parser.ml"
                : 'add_attribute_line))
 ; (fun __caml_parser_env ->
-    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_location_line) in
+    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_resource_line) in
     Obj.repr(
 # 156 "src/dsl/parser.mly"
                       (_1)
 # 541 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
-    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_organisation_line) in
+    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_resource_handler_line) in
     Obj.repr(
 # 157 "src/dsl/parser.mly"
-                           (_1)
+                               (_1)
 # 548 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
-    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_operator_line) in
+    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_agent_line) in
     Obj.repr(
 # 158 "src/dsl/parser.mly"
-                       (_1)
+                    (_1)
 # 555 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
@@ -572,10 +572,10 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 163 "src/dsl/parser.mly"
-                                       (let to_ =  System_new.Node.organisation _5 in 
-                                        let from = System_new.Node.operator _2 in
+                                           (let to_ =  System_new.Node.resource_handler _5 in 
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 582 "src/dsl/parser.ml"
@@ -585,10 +585,10 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 169 "src/dsl/parser.mly"
-                                    (let to_ =  System_new.Node.location _5 in 
-                                        let from = System_new.Node.operator _2 in
+                                    (let to_ =  System_new.Node.resource _5 in 
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 595 "src/dsl/parser.ml"
@@ -599,11 +599,11 @@ let yyact = [|
     Obj.repr(
 # 175 "src/dsl/parser.mly"
                            (
-                                        let from = System_new.Node.operator _2 in
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 610 "src/dsl/parser.ml"
@@ -614,12 +614,12 @@ let yyact = [|
     Obj.repr(
 # 183 "src/dsl/parser.mly"
                                    (
-                                        let from = System_new.Node.operator _2 in
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        let attribute_maintainer_id = System_new.Node.attribute_id _4 in
-                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
-                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        let attribute_handler_id = System_new.Node.attribute_id _4 in
+                                        let to_ = System_new.get_attribute_handler_by_id system attribute_handler_id |>
+                                        System_new.Node.attribute_handler_node_of_attribute_handler in
+                                        System_new.grant_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 626 "src/dsl/parser.ml"
@@ -629,12 +629,12 @@ let yyact = [|
     let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 192 "src/dsl/parser.mly"
-                                                       (
+                                                           (
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.organisation _4 in
-                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource_handler _4 in
+                                        System_new.automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 641 "src/dsl/parser.ml"
@@ -648,8 +648,8 @@ let yyact = [|
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.location _4 in
-                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource _4 in
+                                        System_new.automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         )
 # 655 "src/dsl/parser.ml"
                : 'grant_line))
@@ -658,10 +658,10 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 209 "src/dsl/parser.mly"
-                                        (let to_ =  System_new.Node.organisation _5 in 
-                                        let from = System_new.Node.operator _2 in
+                                            (let to_ =  System_new.Node.resource_handler _5 in 
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 668 "src/dsl/parser.ml"
@@ -671,10 +671,10 @@ let yyact = [|
     let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 215 "src/dsl/parser.mly"
-                                     (let to_ =  System_new.Node.location _5 in 
-                                        let from = System_new.Node.operator _2 in
+                                     (let to_ =  System_new.Node.resource _5 in 
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 681 "src/dsl/parser.ml"
@@ -685,11 +685,11 @@ let yyact = [|
     Obj.repr(
 # 221 "src/dsl/parser.mly"
                             (
-                                        let from = System_new.Node.operator _2 in
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 696 "src/dsl/parser.ml"
@@ -700,12 +700,12 @@ let yyact = [|
     Obj.repr(
 # 229 "src/dsl/parser.mly"
                                     (
-                                        let from = System_new.Node.operator _2 in
+                                        let from = System_new.Node.agent _2 in
                                         let system = get_selected_system () in 
-                                        let attribute_maintainer_id = System_new.Node.attribute_id _4 in
-                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
-                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        let attribute_handler_id = System_new.Node.attribute_id _4 in
+                                        let to_ = System_new.get_attribute_handler_by_id system attribute_handler_id |>
+                                        System_new.Node.attribute_handler_node_of_attribute_handler in
+                                        System_new.revoke_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 712 "src/dsl/parser.ml"
@@ -715,12 +715,12 @@ let yyact = [|
     let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 238 "src/dsl/parser.mly"
-                                                        (
+                                                            (
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.organisation _4 in
-                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource_handler _4 in
+                                        System_new.revoke_automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         
                                         )
 # 727 "src/dsl/parser.ml"
@@ -734,8 +734,8 @@ let yyact = [|
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.location _4 in
-                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource _4 in
+                                        System_new.revoke_automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         )
 # 741 "src/dsl/parser.ml"
                : 'revoke_line))
@@ -745,10 +745,10 @@ let yyact = [|
     Obj.repr(
 # 255 "src/dsl/parser.mly"
                                     (
-                                        let operator = System_new.Node.operator _2 in 
+                                        let agent = System_new.Node.agent _2 in 
                                         let system = get_selected_system () in 
-                                        let to_ = System_new.Node.location _4 in 
-                                        System_new.move_operator system ~operator ~to_
+                                        let to_ = System_new.Node.resource _4 in 
+                                        System_new.move_agent system ~agent ~to_
 
                                     )
 # 755 "src/dsl/parser.ml"

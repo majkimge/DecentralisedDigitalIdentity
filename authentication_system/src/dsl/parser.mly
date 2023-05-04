@@ -6,7 +6,7 @@
     let () = (if file_exists then 
         system_table:= (Marshal.from_channel (In_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") : System_new.t String.Map.t))
     let selected_system = ref ("")
-    let selected_operator = ref (System_new.Node.operator "")
+    let selected_agent = ref (System_new.Node.agent "")
     let update_system system_name system = 
         system_table := Map.update (!system_table) system_name ~f:(fun _ -> system)
     let get_system name = match Map.find (!system_table) name with 
@@ -17,7 +17,7 @@
 %}
 %token CREATE MOVE SELECT JOIN GRANT ACCESS_TO REVOKE
 %token SYSTEM
-%token LOCATION ORGANISATION ATTRIBUTE ATTRIBUTE_HANDLER OPERATOR
+%token RESOURCE RESOURCE_HANDLER ATTRIBUTE ATTRIBUTE_HANDLER AGENT
 %token IN UNDER TO WITH
 %token WITH_ENTRANCES_TO  
 %token GRANTED_AUTOMATICALLY_IF
@@ -42,24 +42,24 @@ empty_lines:
 
 init_line:
     CREATE SYSTEM ID AS ID  {
-                                let admin = System_new.Node.operator $5 in
+                                let admin = System_new.Node.agent $5 in
                                 let system = System_new.create admin $3 in 
                                 let () = selected_system := $3 in 
                                 let () = update_system $3 system in 
-                                let () = selected_operator := admin in
+                                let () = selected_agent := admin in
                                 system
                             }
     |SELECT SYSTEM ID AS ID       {
                                 let () = selected_system := $3 in 
-                                let () = selected_operator := System_new.Node.operator $5 in
+                                let () = selected_agent := System_new.Node.agent $5 in
                                 get_system $3
                             }
     |JOIN SYSTEM ID AS ID       {
                                 let () = selected_system := $3 in 
-                                let operator = System_new.Node.operator $5 in
+                                let agent = System_new.Node.agent $5 in
                                 let system = get_system $3 in
-                                let system = System_new.add_operator system ~operator in
-                                let () = selected_operator := operator in
+                                let system = System_new.add_agent system ~agent in
+                                let () = selected_agent := agent in
                                 let () = update_system $3 system in 
                                 system
                             };                        
@@ -67,51 +67,51 @@ init_line:
 
 
 
-add_organisation_line:
-    CREATE ORGANISATION ID     {
-                                let organisation = System_new.Node.organisation $3 in
+add_resource_handler_line:
+    CREATE RESOURCE_HANDLER ID     {
+                                let resource_handler = System_new.Node.resource_handler $3 in
                                 let system = get_selected_system () in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent:System_new.root_node
                             }
-    |CREATE ORGANISATION ID IN ORGANISATION ID   {
-                                let organisation = System_new.Node.organisation $3 in
+    |CREATE RESOURCE_HANDLER ID IN RESOURCE_HANDLER ID   {
+                                let resource_handler = System_new.Node.resource_handler $3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.organisation $6 in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                let parent = System_new.Node.resource_handler $6 in
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent
                             }
-    |CREATE ORGANISATION ID IN LOCATION ID   {
-                                let organisation = System_new.Node.organisation $3 in
+    |CREATE RESOURCE_HANDLER ID IN RESOURCE ID   {
+                                let resource_handler = System_new.Node.resource_handler $3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.location $6 in
-                                System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
+                                let parent = System_new.Node.resource $6 in
+                                System_new.add_resource_handler system ~maintainer:(!selected_agent) ~resource_handler
                                     ~parent
                             };
-add_location_line:
-    CREATE LOCATION ID IN ORGANISATION ID WITH_ENTRANCES_TO location_list    {
-                                let location = System_new.Node.location $3 in
+add_resource_line:
+    CREATE RESOURCE ID IN RESOURCE_HANDLER ID WITH_ENTRANCES_TO resource_list    {
+                                let resource = System_new.Node.resource $3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.organisation $6 in
-                                System_new.add_location system location ~parent
+                                let parent = System_new.Node.resource_handler $6 in
+                                System_new.add_resource system resource ~parent
                                     ~entrances:$8
                             }
-    |CREATE LOCATION ID IN LOCATION ID WITH_ENTRANCES_TO location_list    {
-                                let location = System_new.Node.location $3 in
+    |CREATE RESOURCE ID IN RESOURCE ID WITH_ENTRANCES_TO resource_list    {
+                                let resource = System_new.Node.resource $3 in
                                 let system = get_selected_system () in
-                                let parent = System_new.Node.location $6 in
-                                System_new.add_location system location ~parent
+                                let parent = System_new.Node.resource $6 in
+                                System_new.add_resource system resource ~parent
                                     ~entrances:$8
                             };
-location_list:
-    ID       {[System_new.Node.location $1]}
-    |ID COMMA location_list  {(System_new.Node.location $1) :: $3};
+resource_list:
+    ID       {[System_new.Node.resource $1]}
+    |ID COMMA resource_list  {(System_new.Node.resource $1) :: $3};
 
-add_operator_line:
-    CREATE OPERATOR ID     {
-                                let operator = System_new.Node.operator $3 in
+add_agent_line:
+    CREATE AGENT ID     {
+                                let agent = System_new.Node.agent $3 in
                                 let system = get_selected_system () in
-                                System_new.add_operator system ~operator
+                                System_new.add_agent system ~agent
                             };
 
 attribute_condition:
@@ -129,18 +129,18 @@ with_attribute_condition:
 
 add_attribute_handler_line:
     CREATE ATTRIBUTE_HANDLER ID with_attribute_condition   {
-                                let attribute_maintainer = System_new.Node.attribute_maintainer $3 $4 in
+                                let attribute_handler = System_new.Node.attribute_handler $3 $4 in
                                 let system = get_selected_system () in
-                                System_new.add_attribute_maintainer_under_operator system ~attribute_maintainer ~operator:(!selected_operator)
+                                System_new.add_attribute_handler_under_agent system ~attribute_handler ~agent:(!selected_agent)
                             }
     |CREATE ATTRIBUTE_HANDLER ID UNDER ATTRIBUTE_HANDLER ID with_attribute_condition {
-                                let attribute_maintainer = System_new.Node.attribute_maintainer $3 $7 in
+                                let attribute_handler = System_new.Node.attribute_handler $3 $7 in
                                 let system = get_selected_system () in
                                 let attribute_id = System_new.Node.attribute_id $6 in
 
-                                let parent_maintainer = System_new.get_attribute_maintainer_by_id system attribute_id in
-                                System_new.add_attribute_maintainer_under_maintainer system 
-                                ~attribute_maintainer ~attribute_maintainer_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer parent_maintainer)
+                                let parent_maintainer = System_new.get_attribute_handler_by_id system attribute_id in
+                                System_new.add_attribute_handler_under_maintainer system 
+                                ~attribute_handler ~attribute_handler_maintainer:(System_new.Node.attribute_handler_node_of_attribute_handler parent_maintainer)
                             };
 
 add_attribute_line:
@@ -148,115 +148,115 @@ add_attribute_line:
                                 let attribute = System_new.Node.attribute $3 $7 in
                                 let system = get_selected_system () in
                                 let attribute_id = System_new.Node.attribute_id $6 in
-                                let attribute_maintainer = System_new.get_attribute_maintainer_by_id system attribute_id in
-                                System_new.add_attribute system ~attribute ~attribute_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer attribute_maintainer)
+                                let attribute_handler = System_new.get_attribute_handler_by_id system attribute_id in
+                                System_new.add_attribute system ~attribute ~attribute_handler:(System_new.Node.attribute_handler_node_of_attribute_handler attribute_handler)
 
                             };
 add_line:
-    add_location_line {$1}
-    |add_organisation_line {$1}
-    |add_operator_line {$1}
+    add_resource_line {$1}
+    |add_resource_handler_line {$1}
+    |add_agent_line {$1}
     |add_attribute_handler_line {$1}
     |add_attribute_line {$1};
 
 grant_line:
-    GRANT ID ACCESS_TO ORGANISATION ID {let to_ =  System_new.Node.organisation $5 in 
-                                        let from = System_new.Node.operator $2 in
+    GRANT ID ACCESS_TO RESOURCE_HANDLER ID {let to_ =  System_new.Node.resource_handler $5 in 
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |GRANT ID ACCESS_TO LOCATION ID {let to_ =  System_new.Node.location $5 in 
-                                        let from = System_new.Node.operator $2 in
+    |GRANT ID ACCESS_TO RESOURCE ID {let to_ =  System_new.Node.resource $5 in 
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }                               
     |GRANT ID ATTRIBUTE ID {
-                                        let from = System_new.Node.operator $2 in
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
     |GRANT ID ATTRIBUTE_HANDLER ID {
-                                        let from = System_new.Node.operator $2 in
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        let attribute_maintainer_id = System_new.Node.attribute_id $4 in
-                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
-                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        let attribute_handler_id = System_new.Node.attribute_id $4 in
+                                        let to_ = System_new.get_attribute_handler_by_id system attribute_handler_id |>
+                                        System_new.Node.attribute_handler_node_of_attribute_handler in
+                                        System_new.grant_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |GRANT ACCESS_TO ORGANISATION ID WITH ATTRIBUTE ID {
+    |GRANT ACCESS_TO RESOURCE_HANDLER ID WITH ATTRIBUTE ID {
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.organisation $4 in
-                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource_handler $4 in
+                                        System_new.automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |GRANT ACCESS_TO LOCATION ID WITH ATTRIBUTE ID {
+    |GRANT ACCESS_TO RESOURCE ID WITH ATTRIBUTE ID {
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.location $4 in
-                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource $4 in
+                                        System_new.automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         };    
 
 revoke_line:
-    REVOKE ID ACCESS_TO ORGANISATION ID {let to_ =  System_new.Node.organisation $5 in 
-                                        let from = System_new.Node.operator $2 in
+    REVOKE ID ACCESS_TO RESOURCE_HANDLER ID {let to_ =  System_new.Node.resource_handler $5 in 
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |REVOKE ID ACCESS_TO LOCATION ID {let to_ =  System_new.Node.location $5 in 
-                                        let from = System_new.Node.operator $2 in
+    |REVOKE ID ACCESS_TO RESOURCE ID {let to_ =  System_new.Node.resource $5 in 
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_access system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }                               
     |REVOKE ID ATTRIBUTE ID {
-                                        let from = System_new.Node.operator $2 in
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.revoke_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
     |REVOKE ID ATTRIBUTE_HANDLER ID {
-                                        let from = System_new.Node.operator $2 in
+                                        let from = System_new.Node.agent $2 in
                                         let system = get_selected_system () in 
-                                        let attribute_maintainer_id = System_new.Node.attribute_id $4 in
-                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
-                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        let attribute_handler_id = System_new.Node.attribute_id $4 in
+                                        let to_ = System_new.get_attribute_handler_by_id system attribute_handler_id |>
+                                        System_new.Node.attribute_handler_node_of_attribute_handler in
+                                        System_new.revoke_attribute system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |REVOKE ACCESS_TO ORGANISATION ID WITH ATTRIBUTE ID {
+    |REVOKE ACCESS_TO RESOURCE_HANDLER ID WITH ATTRIBUTE ID {
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.organisation $4 in
-                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource_handler $4 in
+                                        System_new.revoke_automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         
                                         }
-    |REVOKE ACCESS_TO LOCATION ID WITH ATTRIBUTE ID {
+    |REVOKE ACCESS_TO RESOURCE ID WITH ATTRIBUTE ID {
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        let to_ = System_new.Node.location $4 in
-                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        let to_ = System_new.Node.resource $4 in
+                                        System_new.revoke_automatic_permission system ~agent:(!selected_agent) ~from ~to_
                                         };              
 
 move_line:
     MOVE ID TO ID                   {
-                                        let operator = System_new.Node.operator $2 in 
+                                        let agent = System_new.Node.agent $2 in 
                                         let system = get_selected_system () in 
-                                        let to_ = System_new.Node.location $4 in 
-                                        System_new.move_operator system ~operator ~to_
+                                        let to_ = System_new.Node.resource $4 in 
+                                        System_new.move_agent system ~agent ~to_
 
                                     }
 

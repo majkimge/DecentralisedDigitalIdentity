@@ -5,71 +5,71 @@ let print_system system =
   print_endline
     (Yojson.to_string (Authentication_system.System_new.to_json system))
 
-let test_operator = System_new.Node.operator "test_operator"
-let test_operator2 = System_new.Node.operator "test_operator2"
-let test_system () = System_new.create test_operator "Test_system"
-let test_location1 = System_new.Node.location "test_location1"
-let test_location2 = System_new.Node.location "test_location2"
-let test_location3 = System_new.Node.location "test_location3"
-let test_organisation = System_new.Node.organisation "test_organisation"
+let test_agent = System_new.Node.agent "test_agent"
+let test_agent2 = System_new.Node.agent "test_agent2"
+let test_system () = System_new.create test_agent "Test_system"
+let test_resource1 = System_new.Node.resource "test_resource1"
+let test_resource2 = System_new.Node.resource "test_resource2"
+let test_resource3 = System_new.Node.resource "test_resource3"
+let test_resource_handler = System_new.Node.resource_handler "test_resource_handler"
 
 let%expect_test "create test" =
   let system = test_system () in
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false}],"links":[{"source":"test_operator","target":"world","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"world","type":"simple"}]}} |}]
 
-let%expect_test "add location" =
+let%expect_test "add resource" =
   let system = test_system () in
   let system =
-    System_new.add_location system test_location1 ~parent:System_new.root_node
+    System_new.add_resource system test_resource1 ~parent:System_new.root_node
       ~entrances:[ System_new.root_node ]
   in
   let system =
-    System_new.add_location system test_location2 ~parent:test_location1
-      ~entrances:[ test_location1 ]
+    System_new.add_resource system test_resource2 ~parent:test_resource1
+      ~entrances:[ test_resource1 ]
   in
   let system =
-    System_new.add_location system test_location3 ~parent:test_location2
-      ~entrances:[ test_location1; test_location2 ]
+    System_new.add_resource system test_resource3 ~parent:test_resource2
+      ~entrances:[ test_resource1; test_resource2 ]
   in
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_location1","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false},{"id":"test_location3","group":"location","is_extension":false},{"id":"test_location2","group":"location","is_extension":false}],"links":[{"source":"world","target":"test_location1","type":"simple"},{"source":"world","target":"test_operator","type":"simple"},{"source":"test_location1","target":"test_location3","type":"simple"},{"source":"test_location1","target":"test_location2","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"test_location1","group":"location","is_extension":false},{"id":"test_location2","group":"location","is_extension":false},{"id":"test_location3","group":"location","is_extension":false}],"links":[{"source":"test_operator","target":"world","type":"simple"},{"source":"world","target":"test_location1","type":"simple"},{"source":"test_location1","target":"test_location2","type":"simple"},{"source":"test_location2","target":"test_location3","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_resource1","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false},{"id":"test_resource3","group":"resource","is_extension":false},{"id":"test_resource2","group":"resource","is_extension":false}],"links":[{"source":"world","target":"test_resource1","type":"simple"},{"source":"world","target":"test_agent","type":"simple"},{"source":"test_resource1","target":"test_resource3","type":"simple"},{"source":"test_resource1","target":"test_resource2","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"test_resource1","group":"resource","is_extension":false},{"id":"test_resource2","group":"resource","is_extension":false},{"id":"test_resource3","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"world","type":"simple"},{"source":"world","target":"test_resource1","type":"simple"},{"source":"test_resource1","target":"test_resource2","type":"simple"},{"source":"test_resource2","target":"test_resource3","type":"simple"}]}} |}]
 
-let%expect_test "add organisation" =
+let%expect_test "add resource_handler" =
   let system = test_system () in
   let system =
-    System_new.add_organisation system ~organisation:test_organisation
-      ~parent:System_new.root_node ~maintainer:test_operator
+    System_new.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System_new.root_node ~maintainer:test_agent
   in
   let system =
-    System_new.add_location system test_location2 ~parent:test_organisation
+    System_new.add_resource system test_resource2 ~parent:test_resource_handler
       ~entrances:[ System_new.root_node ]
   in
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_location2","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_location2","type":"simple"},{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"test_organisation","group":"organisation","is_extension":false},{"id":"test_location2","group":"location","is_extension":false}],"links":[{"source":"test_operator","target":"test_organisation","type":"simple"},{"source":"test_operator","target":"world","type":"simple"},{"source":"world","target":"test_organisation","type":"simple"},{"source":"test_organisation","target":"test_location2","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_resource2","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_resource2","type":"simple"},{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"test_resource_handler","group":"resource_handler","is_extension":false},{"id":"test_resource2","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"test_resource_handler","type":"simple"},{"source":"test_agent","target":"world","type":"simple"},{"source":"world","target":"test_resource_handler","type":"simple"},{"source":"test_resource_handler","target":"test_resource2","type":"simple"}]}} |}]
 
-let%expect_test "add operator" =
+let%expect_test "add agent" =
   let system = test_system () in
-  let system = System_new.add_operator system ~operator:test_operator2 in
+  let system = System_new.add_agent system ~agent:test_agent2 in
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_operator2","group":"operator","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_operator2","type":"simple"},{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"test_operator2","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false}],"links":[{"source":"test_operator","target":"world","type":"simple"},{"source":"test_operator2","target":"world","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent2","group":"agent","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent2","type":"simple"},{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"test_agent2","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"world","type":"simple"},{"source":"test_agent2","target":"world","type":"simple"}]}} |}]
 
 let%expect_test "add attribute" =
   let system = test_system () in
   let attribute1 = System_new.Node.attribute "attribute1" Never in
-  let attribute_maintainer =
-    System_new.Node.attribute_maintainer "attribute_maintainer" Never
+  let attribute_handler =
+    System_new.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_maintainer_under_operator system
-      ~operator:test_operator ~attribute_maintainer
+    System_new.add_attribute_handler_under_agent system
+      ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
+    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
   let attr_ref =
     System_new.get_attribute_by_id system
@@ -79,131 +79,131 @@ let%expect_test "add attribute" =
     System_new.Node.attribute "attribute2" (Attribute_required attr_ref)
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute2 ~attribute_maintainer
+    System_new.add_attribute system ~attribute:attribute2 ~attribute_handler
   in
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"attribute_maintainer","group":"attribute_maintainer","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false},{"id":"attribute2","group":"attribute","is_extension":false}],"links":[{"source":"test_operator","target":"attribute_maintainer","type":"simple"},{"source":"test_operator","target":"world","type":"simple"},{"source":"attribute_maintainer","target":"attribute2","type":"simple"},{"source":"attribute_maintainer","target":"attribute1","type":"simple"},{"source":"attribute1","target":"attribute2","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"attribute_handler","group":"attribute_handler","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false},{"id":"attribute2","group":"attribute","is_extension":false}],"links":[{"source":"test_agent","target":"attribute_handler","type":"simple"},{"source":"test_agent","target":"world","type":"simple"},{"source":"attribute_handler","target":"attribute2","type":"simple"},{"source":"attribute_handler","target":"attribute1","type":"simple"},{"source":"attribute1","target":"attribute2","type":"simple"}]}} |}]
 
 let%expect_test "add permission" =
   let system = test_system () in
   let attribute1 = System_new.Node.attribute "attribute1" Never in
-  let attribute_maintainer =
-    System_new.Node.attribute_maintainer "attribute_maintainer" Never
+  let attribute_handler =
+    System_new.Node.attribute_handler "attribute_handler" Never
   in
 
   let system =
-    System_new.add_attribute_maintainer_under_operator system
-      ~operator:test_operator ~attribute_maintainer
+    System_new.add_attribute_handler_under_agent system
+      ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
+    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
 
   let system =
-    System_new.grant_attribute system ~operator:test_operator
-      ~from:test_operator ~to_:attribute1
+    System_new.grant_attribute system ~agent:test_agent
+      ~from:test_agent ~to_:attribute1
   in
 
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"attribute_maintainer","group":"attribute_maintainer","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false}],"links":[{"source":"test_operator","target":"attribute1","type":"simple"},{"source":"test_operator","target":"attribute_maintainer","type":"simple"},{"source":"test_operator","target":"world","type":"simple"},{"source":"attribute_maintainer","target":"attribute1","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"attribute_handler","group":"attribute_handler","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false}],"links":[{"source":"test_agent","target":"attribute1","type":"simple"},{"source":"test_agent","target":"attribute_handler","type":"simple"},{"source":"test_agent","target":"world","type":"simple"},{"source":"attribute_handler","target":"attribute1","type":"simple"}]}} |}]
 
 let%expect_test "delete permission" =
   let system = test_system () in
   let attribute1 = System_new.Node.attribute "attribute1" Never in
-  let attribute_maintainer =
-    System_new.Node.attribute_maintainer "attribute_maintainer" Never
+  let attribute_handler =
+    System_new.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_maintainer_under_operator system
-      ~operator:test_operator ~attribute_maintainer
+    System_new.add_attribute_handler_under_agent system
+      ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
+    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
 
   let system =
-    System_new.grant_attribute system ~operator:test_operator
-      ~from:test_operator ~to_:attribute1
+    System_new.grant_attribute system ~agent:test_agent
+      ~from:test_agent ~to_:attribute1
   in
 
   let system =
-    System_new.revoke_attribute system ~operator:test_operator
-      ~from:test_operator ~to_:attribute1
-  in
-
-  print_system system;
-  [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"attribute_maintainer","group":"attribute_maintainer","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false}],"links":[{"source":"test_operator","target":"attribute_maintainer","type":"simple"},{"source":"test_operator","target":"world","type":"simple"},{"source":"attribute_maintainer","target":"attribute1","type":"simple"}]}} |}]
-
-let%expect_test "move_operator_success" =
-  let system = test_system () in
-  let system =
-    System_new.add_organisation system ~organisation:test_organisation
-      ~parent:System_new.root_node ~maintainer:test_operator
-  in
-  let system =
-    System_new.add_location system test_location1 ~parent:test_organisation
-      ~entrances:[ System_new.root_node ]
-  in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
-  let attribute_maintainer =
-    System_new.Node.attribute_maintainer "attribute_maintainer" Never
-  in
-  let system =
-    System_new.add_attribute_maintainer_under_operator system
-      ~operator:test_operator ~attribute_maintainer
-  in
-  let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
-  in
-
-  let system =
-    System_new.grant_attribute system ~operator:test_operator
-      ~from:test_operator ~to_:attribute1
-  in
-  let system =
-    System_new.automatic_permission system ~operator:test_operator
-      ~from:attribute1 ~to_:test_location1
-  in
-  let system =
-    System_new.move_operator system ~operator:test_operator ~to_:test_location1
+    System_new.revoke_attribute system ~agent:test_agent
+      ~from:test_agent ~to_:attribute1
   in
 
   print_system system;
   [%expect
-    {| {"position_tree":{"nodes":[{"id":"world","group":"location","is_extension":false},{"id":"test_location1","group":"location","is_extension":false},{"id":"test_operator","group":"operator","is_extension":false}],"links":[{"source":"world","target":"test_location1","type":"simple"},{"source":"test_location1","target":"test_operator","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_operator","group":"operator","is_extension":false},{"id":"world","group":"location","is_extension":false},{"id":"test_organisation","group":"organisation","is_extension":false},{"id":"attribute_maintainer","group":"attribute_maintainer","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false},{"id":"test_location1","group":"location","is_extension":false}],"links":[{"source":"test_operator","target":"attribute1","type":"simple"},{"source":"test_operator","target":"attribute_maintainer","type":"simple"},{"source":"test_operator","target":"test_organisation","type":"simple"},{"source":"test_operator","target":"world","type":"simple"},{"source":"world","target":"test_organisation","type":"simple"},{"source":"test_organisation","target":"test_location1","type":"simple"},{"source":"attribute_maintainer","target":"attribute1","type":"simple"},{"source":"attribute1","target":"test_location1","type":"simple"}]}} |}]
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"attribute_handler","group":"attribute_handler","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false}],"links":[{"source":"test_agent","target":"attribute_handler","type":"simple"},{"source":"test_agent","target":"world","type":"simple"},{"source":"attribute_handler","target":"attribute1","type":"simple"}]}} |}]
 
-let%expect_test "move_operator_fail" =
+let%expect_test "move_agent_success" =
   let system = test_system () in
   let system =
-    System_new.add_organisation system ~organisation:test_organisation
-      ~parent:System_new.root_node ~maintainer:test_operator
+    System_new.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System_new.root_node ~maintainer:test_agent
   in
   let system =
-    System_new.add_location system test_location1 ~parent:test_organisation
+    System_new.add_resource system test_resource1 ~parent:test_resource_handler
       ~entrances:[ System_new.root_node ]
   in
   let attribute1 = System_new.Node.attribute "attribute1" Never in
-  let attribute_maintainer =
-    System_new.Node.attribute_maintainer "attribute_maintainer" Never
+  let attribute_handler =
+    System_new.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_maintainer_under_operator system
-      ~operator:test_operator ~attribute_maintainer
+    System_new.add_attribute_handler_under_agent system
+      ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
+    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+  in
+
+  let system =
+    System_new.grant_attribute system ~agent:test_agent
+      ~from:test_agent ~to_:attribute1
   in
   let system =
-    System_new.automatic_permission system ~operator:test_operator
-      ~from:attribute1 ~to_:test_location1
+    System_new.automatic_permission system ~agent:test_agent
+      ~from:attribute1 ~to_:test_resource1
+  in
+  let system =
+    System_new.move_agent system ~agent:test_agent ~to_:test_resource1
+  in
+
+  print_system system;
+  [%expect
+    {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_resource1","group":"resource","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_resource1","type":"simple"},{"source":"test_resource1","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false},{"id":"test_resource_handler","group":"resource_handler","is_extension":false},{"id":"attribute_handler","group":"attribute_handler","is_extension":false},{"id":"attribute1","group":"attribute","is_extension":false},{"id":"test_resource1","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"attribute1","type":"simple"},{"source":"test_agent","target":"attribute_handler","type":"simple"},{"source":"test_agent","target":"test_resource_handler","type":"simple"},{"source":"test_agent","target":"world","type":"simple"},{"source":"world","target":"test_resource_handler","type":"simple"},{"source":"test_resource_handler","target":"test_resource1","type":"simple"},{"source":"attribute_handler","target":"attribute1","type":"simple"},{"source":"attribute1","target":"test_resource1","type":"simple"}]}} |}]
+
+let%expect_test "move_agent_fail" =
+  let system = test_system () in
+  let system =
+    System_new.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System_new.root_node ~maintainer:test_agent
+  in
+  let system =
+    System_new.add_resource system test_resource1 ~parent:test_resource_handler
+      ~entrances:[ System_new.root_node ]
+  in
+  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute_handler =
+    System_new.Node.attribute_handler "attribute_handler" Never
+  in
+  let system =
+    System_new.add_attribute_handler_under_agent system
+      ~agent:test_agent ~attribute_handler
+  in
+  let system =
+    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+  in
+  let system =
+    System_new.automatic_permission system ~agent:test_agent
+      ~from:attribute1 ~to_:test_resource1
   in
   try
     let _system =
-      System_new.move_operator system ~operator:test_operator
-        ~to_:test_location1
+      System_new.move_agent system ~agent:test_agent
+        ~to_:test_resource1
     in
     ()
   with _ ->

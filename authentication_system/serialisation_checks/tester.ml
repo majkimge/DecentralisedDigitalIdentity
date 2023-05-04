@@ -13,36 +13,36 @@ let top : type a n. (a, n s) b_tree -> a = function Node (_, v, _) -> v
 
 type tree = AnyTree : ('a, 'n) b_tree -> tree;;
 
-let cambridge_admin = System_new.Node.operator "Cambridge_admin" in
+let cambridge_admin = System_new.Node.agent "Cambridge_admin" in
 let cambridge_handler =
-  System_new.Node.attribute_maintainer "Cambridge_handler" Never
+  System_new.Node.attribute_handler "Cambridge_handler" Never
 in
 let student_attribute = System_new.Node.attribute "Student" Never in
 let system = System_new.create cambridge_admin "Cambridge" in
 let system =
-  System_new.add_attribute_maintainer_under_operator system
-    ~attribute_maintainer:cambridge_handler ~operator:cambridge_admin
+  System_new.add_attribute_handler_under_agent system
+    ~attribute_handler:cambridge_handler ~agent:cambridge_admin
 in
 
 let system =
   System_new.add_attribute system ~attribute:student_attribute
-    ~attribute_maintainer:cambridge_handler
+    ~attribute_handler:cambridge_handler
 in
-let college = System_new.Node.organisation "College" in
-let college_admin = System_new.Node.operator "College_admin" in
-let system = System_new.add_operator system ~operator:college_admin in
+let college = System_new.Node.resource_handler "College" in
+let college_admin = System_new.Node.agent "College_admin" in
+let system = System_new.add_agent system ~agent:college_admin in
 let system =
-  System_new.add_organisation system ~maintainer:college_admin
-    ~organisation:college ~parent:System_new.root_node
+  System_new.add_resource_handler system ~maintainer:college_admin
+    ~resource_handler:college ~parent:System_new.root_node
 in
 (* let () = print_string (Yojson.to_string (System_new.to_json system)) in *)
-let main_site = System_new.Node.location "main_site" in
+let main_site = System_new.Node.resource "main_site" in
 let system =
-  System_new.add_location system main_site ~parent:college
+  System_new.add_resource system main_site ~parent:college
     ~entrances:[ System_new.root_node ]
 in
 let system =
-  System_new.grant_attribute system ~operator:cambridge_admin
+  System_new.grant_attribute system ~agent:cambridge_admin
     ~from:cambridge_admin ~to_:student_attribute
 in
 system

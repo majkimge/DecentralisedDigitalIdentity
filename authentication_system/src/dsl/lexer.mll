@@ -5,7 +5,7 @@ exception Eof
 (*
 %token CREATE MOVE SELECT GRANT ACCESS_TO
 %token SYSTEM
-%token LOCATION ORGANISATION ATTRIBUTE ATTRIBUTE_HANDLER OPERATOR
+%token RESOURCE RESOURCE_HANDLER ATTRIBUTE ATTRIBUTE_HANDLER AGENT
 %token IN UNDER 
 %token WITH_ENTRANCES_TO  
 %token GRANTED_AUTOMATICALLY_IF
@@ -28,11 +28,11 @@ rule token = parse
     | "revoke"                  {REVOKE}
     | "access to"                 { ACCESS_TO }
     | "system"                  { SYSTEM }
-    | "location"                 { LOCATION }
-    | "organisation"            { ORGANISATION }
+    | "resource"                 { RESOURCE }
+    | "resource handler"            { RESOURCE_HANDLER }
     | "attribute"              { ATTRIBUTE }
     | "attribute handler"        { ATTRIBUTE_HANDLER }
-    | "operator"                 { OPERATOR }
+    | "agent"                 { AGENT }
     | "in"                  { IN }
     | "under"                   { UNDER }
     | "with entrances to"          { WITH_ENTRANCES_TO }
