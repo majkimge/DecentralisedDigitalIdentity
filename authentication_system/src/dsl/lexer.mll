@@ -25,6 +25,7 @@ rule token = parse
     | "select"                    { SELECT }
     | "join"                    { JOIN }
     | "grant"                     { GRANT }
+    | "revoke"                  {REVOKE}
     | "access to"                 { ACCESS_TO }
     | "system"                  { SYSTEM }
     | "location"                 { LOCATION }

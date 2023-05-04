@@ -108,17 +108,46 @@ val add_attribute_maintainer_under_maintainer :
     (Node.attribute_maintainer, Node.attribute_maintainer) Node.t ->
   t
 
-val add_permission_edge :
+val grant_attribute :
   t ->
   operator:(Node.operator, Node.operator) Node.t ->
-  from:('a, 'b) Node.t ->
-  to_:('c, 'd) Node.t ->
+  from:(Node.operator, Node.operator) Node.t ->
+  to_:('c, Node.attribute_maintainer) Node.t ->
   t
 
-val delete_permission_edge :
+val grant_access :
   t ->
   operator:(Node.operator, Node.operator) Node.t ->
-  node:('a, 'b) Node.t ->
+  from:(Node.operator, Node.operator) Node.t ->
+  to_:('c, Node.organisation) Node.t ->
+  t
+
+val automatic_permission :
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  from:(Node.attribute, Node.attribute_maintainer) Node.t ->
+  to_:('c, Node.organisation) Node.t ->
+  t
+
+val revoke_attribute :
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  from:(Node.operator, Node.operator) Node.t ->
+  to_:('c, Node.attribute_maintainer) Node.t ->
+  t
+
+val revoke_access :
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  from:(Node.operator, Node.operator) Node.t ->
+  to_:('c, Node.organisation) Node.t ->
+  t
+
+val revoke_automatic_permission :
+  t ->
+  operator:(Node.operator, Node.operator) Node.t ->
+  from:(Node.attribute, Node.attribute_maintainer) Node.t ->
+  to_:('c, Node.organisation) Node.t ->
   t
 
 val move_operator :

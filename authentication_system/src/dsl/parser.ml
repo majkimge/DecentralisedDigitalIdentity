@@ -5,6 +5,7 @@ type token =
   | JOIN
   | GRANT
   | ACCESS_TO
+  | REVOKE
   | SYSTEM
   | LOCATION
   | ORGANISATION
@@ -46,7 +47,7 @@ let _ = parse_error;;
         |None -> raise_s [%message "No system with that name in the table" (name:string) (system_table:System_new.t String.Map.t ref)]
     let update_selected_system system = update_system (!selected_system) system
     let get_selected_system () = get_system (!selected_system);;
-# 50 "src/dsl/parser.ml"
+# 51 "src/dsl/parser.ml"
 let yytransl_const = [|
   257 (* CREATE *);
   258 (* MOVE *);
@@ -54,30 +55,31 @@ let yytransl_const = [|
   260 (* JOIN *);
   261 (* GRANT *);
   262 (* ACCESS_TO *);
-  263 (* SYSTEM *);
-  264 (* LOCATION *);
-  265 (* ORGANISATION *);
-  266 (* ATTRIBUTE *);
-  267 (* ATTRIBUTE_HANDLER *);
-  268 (* OPERATOR *);
-  269 (* IN *);
-  270 (* UNDER *);
-  271 (* TO *);
-  272 (* WITH *);
-  273 (* WITH_ENTRANCES_TO *);
-  274 (* GRANTED_AUTOMATICALLY_IF *);
-  275 (* AS *);
-  276 (* COMMA *);
-  277 (* LPAREN *);
-  278 (* RPAREN *);
-  279 (* AND *);
-  280 (* OR *);
-  282 (* EOL *);
+  263 (* REVOKE *);
+  264 (* SYSTEM *);
+  265 (* LOCATION *);
+  266 (* ORGANISATION *);
+  267 (* ATTRIBUTE *);
+  268 (* ATTRIBUTE_HANDLER *);
+  269 (* OPERATOR *);
+  270 (* IN *);
+  271 (* UNDER *);
+  272 (* TO *);
+  273 (* WITH *);
+  274 (* WITH_ENTRANCES_TO *);
+  275 (* GRANTED_AUTOMATICALLY_IF *);
+  276 (* AS *);
+  277 (* COMMA *);
+  278 (* LPAREN *);
+  279 (* RPAREN *);
+  280 (* AND *);
+  281 (* OR *);
+  283 (* EOL *);
     0 (* EOF *);
     0|]
 
 let yytransl_block = [|
-  281 (* ID *);
+  282 (* ID *);
     0|]
 
 let yylhs = "\255\255\
@@ -85,53 +87,61 @@ let yylhs = "\255\255\
 \005\000\006\000\006\000\007\000\007\000\008\000\009\000\009\000\
 \009\000\009\000\010\000\010\000\011\000\011\000\012\000\013\000\
 \013\000\013\000\013\000\013\000\014\000\014\000\014\000\014\000\
-\014\000\014\000\015\000\016\000\016\000\016\000\016\000\017\000\
-\003\000\003\000\000\000"
+\014\000\014\000\015\000\015\000\015\000\015\000\015\000\015\000\
+\016\000\017\000\017\000\017\000\017\000\017\000\018\000\003\000\
+\003\000\000\000"
 
 let yylen = "\002\000\
 \003\000\000\000\002\000\005\000\005\000\005\000\003\000\006\000\
 \006\000\008\000\008\000\001\000\003\000\003\000\001\000\003\000\
 \003\000\003\000\000\000\002\000\004\000\007\000\007\000\001\000\
 \001\000\001\000\001\000\001\000\005\000\005\000\004\000\004\000\
-\007\000\007\000\004\000\001\000\001\000\001\000\001\000\002\000\
-\000\000\003\000\002\000"
+\007\000\007\000\005\000\005\000\004\000\004\000\007\000\007\000\
+\004\000\001\000\001\000\001\000\001\000\001\000\002\000\000\000\
+\003\000\002\000"
 
 let yydefred = "\000\000\
-\000\000\000\000\000\000\000\000\000\000\043\000\041\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\050\000\048\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\002\000\001\000\
-\000\000\000\000\000\000\000\000\042\000\004\000\005\000\006\000\
-\000\000\000\000\000\000\003\000\038\000\025\000\024\000\026\000\
-\027\000\028\000\036\000\037\000\039\000\040\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\049\000\004\000\005\000\006\000\
+\000\000\000\000\000\000\000\000\003\000\045\000\025\000\024\000\
+\026\000\027\000\028\000\042\000\043\000\044\000\046\000\047\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\014\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\021\000\035\000\
-\000\000\000\000\000\000\000\000\031\000\032\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\015\000\000\000\000\000\
-\000\000\030\000\029\000\000\000\000\000\009\000\008\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\014\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\023\000\022\000\016\000\017\000\018\000\034\000\033\000\000\000\
-\011\000\010\000\000\000\013\000"
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\021\000\
+\041\000\000\000\000\000\000\000\000\000\031\000\032\000\000\000\
+\000\000\000\000\000\000\037\000\038\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\015\000\000\000\000\000\000\000\
+\030\000\029\000\000\000\000\000\036\000\035\000\000\000\000\000\
+\009\000\008\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\023\000\022\000\016\000\
+\017\000\018\000\034\000\033\000\040\000\039\000\000\000\011\000\
+\010\000\000\000\013\000"
 
 let yydgoto = "\002\000\
-\006\000\007\000\011\000\020\000\030\000\031\000\105\000\032\000\
-\079\000\063\000\033\000\034\000\035\000\036\000\037\000\038\000\
-\021\000"
+\006\000\007\000\011\000\020\000\031\000\032\000\128\000\033\000\
+\094\000\072\000\034\000\035\000\036\000\037\000\038\000\039\000\
+\040\000\021\000"
 
-let yysindex = "\026\000\
-\034\255\000\000\026\255\044\255\045\255\000\000\000\000\028\255\
-\029\255\030\255\001\000\038\255\039\255\040\255\000\000\000\000\
-\036\255\041\255\042\255\005\255\000\000\000\000\000\000\000\000\
-\006\255\043\255\250\254\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\046\255\047\255\
-\048\255\049\255\050\255\054\255\031\255\018\255\051\255\052\255\
-\056\255\016\255\000\000\053\255\055\255\057\255\033\255\058\255\
-\059\255\035\255\037\255\065\255\066\255\011\255\000\000\000\000\
-\063\255\069\255\061\255\062\255\000\000\000\000\064\255\067\255\
-\068\255\070\255\071\255\072\255\011\255\000\000\024\255\078\255\
-\080\255\000\000\000\000\074\255\077\255\000\000\000\000\081\255\
-\081\255\254\254\011\255\011\255\073\255\075\255\076\255\076\255\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\082\255\
-\000\000\000\000\076\255\000\000"
+let yysindex = "\016\000\
+\042\255\000\000\020\255\023\255\054\255\000\000\000\000\037\255\
+\038\255\039\255\001\000\046\255\048\255\049\255\000\000\000\000\
+\044\255\050\255\051\255\005\255\000\000\000\000\000\000\000\000\
+\026\255\052\255\250\254\007\255\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\053\255\055\255\056\255\057\255\058\255\059\255\016\255\010\255\
+\032\255\012\255\060\255\066\255\070\255\000\255\000\000\061\255\
+\062\255\063\255\041\255\064\255\065\255\067\255\068\255\043\255\
+\069\255\071\255\045\255\047\255\074\255\080\255\018\255\000\000\
+\000\000\079\255\081\255\073\255\075\255\000\000\000\000\083\255\
+\085\255\077\255\078\255\000\000\000\000\082\255\084\255\086\255\
+\087\255\088\255\089\255\018\255\000\000\034\255\094\255\095\255\
+\000\000\000\000\096\255\098\255\000\000\000\000\093\255\099\255\
+\000\000\000\000\097\255\097\255\024\255\018\255\018\255\092\255\
+\100\255\101\255\102\255\103\255\103\255\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\104\255\000\000\
+\000\000\103\255\000\000"
 
 let yyrindex = "\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
@@ -139,36 +149,43 @@ let yyrindex = "\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\002\000\
-\000\000\003\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\002\000\000\000\003\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\004\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\003\000\
-\003\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\005\000\
-\000\000\000\000\000\000\000\000"
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\004\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\003\000\003\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\000\000\000\000\005\000\000\000\
+\000\000\000\000\000\000"
 
 let yygindex = "\000\000\
-\000\000\036\000\000\000\000\000\000\000\000\000\172\255\000\000\
-\190\255\217\255\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000"
+\000\000\047\000\000\000\000\000\000\000\000\000\153\255\000\000\
+\175\255\209\255\000\000\000\000\000\000\000\000\000\000\000\000\
+\000\000\000\000"
 
-let yytablesize = 287
-let yytable = "\045\000\
+let yytablesize = 288
+let yytable = "\047\000\
 \016\000\007\000\019\000\020\000\012\000\025\000\026\000\004\000\
-\005\000\027\000\090\000\106\000\008\000\039\000\040\000\041\000\
-\042\000\043\000\046\000\099\000\091\000\092\000\108\000\055\000\
-\100\000\101\000\001\000\056\000\057\000\061\000\028\000\077\000\
-\008\000\062\000\003\000\078\000\004\000\005\000\053\000\054\000\
-\067\000\068\000\071\000\072\000\073\000\074\000\091\000\092\000\
-\097\000\098\000\009\000\010\000\012\000\013\000\014\000\029\000\
-\017\000\018\000\019\000\000\000\022\000\000\000\000\000\058\000\
-\059\000\023\000\024\000\044\000\052\000\060\000\047\000\048\000\
-\049\000\050\000\051\000\075\000\076\000\064\000\080\000\065\000\
-\000\000\066\000\069\000\070\000\081\000\082\000\083\000\093\000\
-\084\000\094\000\095\000\085\000\086\000\096\000\087\000\088\000\
-\089\000\102\000\062\000\103\000\104\000\107\000\000\000\000\000\
+\005\000\027\000\109\000\028\000\049\000\129\000\070\000\059\000\
+\001\000\064\000\071\000\048\000\060\000\061\000\065\000\066\000\
+\057\000\058\000\131\000\008\000\121\000\122\000\009\000\029\000\
+\050\000\008\000\041\000\042\000\043\000\044\000\045\000\092\000\
+\062\000\063\000\003\000\093\000\004\000\005\000\120\000\110\000\
+\111\000\076\000\077\000\082\000\083\000\086\000\087\000\088\000\
+\089\000\110\000\111\000\118\000\119\000\010\000\012\000\013\000\
+\014\000\017\000\030\000\018\000\019\000\022\000\000\000\000\000\
+\000\000\067\000\056\000\023\000\024\000\046\000\051\000\068\000\
+\052\000\053\000\054\000\055\000\069\000\090\000\073\000\074\000\
+\075\000\078\000\079\000\091\000\080\000\081\000\084\000\095\000\
+\085\000\096\000\097\000\099\000\098\000\100\000\101\000\102\000\
+\112\000\113\000\114\000\103\000\115\000\104\000\116\000\105\000\
+\106\000\107\000\108\000\071\000\117\000\123\000\000\000\000\000\
+\000\000\000\000\000\000\000\000\130\000\124\000\125\000\126\000\
+\127\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
@@ -187,26 +204,26 @@ let yytable = "\045\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
 \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
-\000\000\000\000\015\000\007\000\019\000\020\000\012\000"
+\000\000\000\000\000\000\015\000\007\000\019\000\020\000\012\000"
 
 let yycheck = "\006\001\
 \000\000\000\000\000\000\000\000\000\000\001\001\002\001\003\001\
-\004\001\005\001\077\000\096\000\007\001\008\001\009\001\010\001\
-\011\001\012\001\025\001\022\001\023\001\024\001\107\000\006\001\
-\091\000\092\000\001\000\010\001\011\001\014\001\026\001\021\001\
-\007\001\018\001\001\001\025\001\003\001\004\001\008\001\009\001\
-\008\001\009\001\008\001\009\001\008\001\009\001\023\001\024\001\
-\088\000\089\000\007\001\007\001\025\001\025\001\025\001\020\000\
-\019\001\019\001\019\001\255\255\025\001\255\255\255\255\013\001\
-\013\001\025\001\025\001\025\001\015\001\014\001\025\001\025\001\
-\025\001\025\001\025\001\011\001\011\001\025\001\016\001\025\001\
-\255\255\025\001\025\001\025\001\016\001\025\001\025\001\010\001\
-\025\001\010\001\017\001\025\001\025\001\017\001\025\001\025\001\
-\025\001\025\001\018\001\025\001\025\001\020\001\255\255\255\255\
+\004\001\005\001\092\000\007\001\006\001\117\000\015\001\006\001\
+\001\000\006\001\019\001\026\001\011\001\012\001\011\001\012\001\
+\009\001\010\001\130\000\008\001\110\000\111\000\008\001\027\001\
+\026\001\008\001\009\001\010\001\011\001\012\001\013\001\022\001\
+\009\001\010\001\001\001\026\001\003\001\004\001\023\001\024\001\
+\025\001\009\001\010\001\009\001\010\001\009\001\010\001\009\001\
+\010\001\024\001\025\001\107\000\108\000\008\001\026\001\026\001\
+\026\001\020\001\020\000\020\001\020\001\026\001\255\255\255\255\
+\255\255\014\001\016\001\026\001\026\001\026\001\026\001\014\001\
+\026\001\026\001\026\001\026\001\015\001\012\001\026\001\026\001\
+\026\001\026\001\026\001\012\001\026\001\026\001\026\001\017\001\
+\026\001\017\001\026\001\017\001\026\001\017\001\026\001\026\001\
+\011\001\011\001\011\001\026\001\011\001\026\001\018\001\026\001\
+\026\001\026\001\026\001\019\001\018\001\026\001\255\255\255\255\
+\255\255\255\255\255\255\255\255\021\001\026\001\026\001\026\001\
+\026\001\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
@@ -225,11 +242,7 @@ let yycheck = "\006\001\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
 \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
-\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
-\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
-\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
-\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
-\255\255\255\255\026\001\026\001\026\001\026\001\026\001"
+\255\255\255\255\255\255\027\001\027\001\027\001\027\001\027\001"
 
 let yynames_const = "\
   CREATE\000\
@@ -238,6 +251,7 @@ let yynames_const = "\
   JOIN\000\
   GRANT\000\
   ACCESS_TO\000\
+  REVOKE\000\
   SYSTEM\000\
   LOCATION\000\
   ORGANISATION\000\
@@ -274,20 +288,20 @@ let yyact = [|
                             ( Marshal.to_channel (Out_channel.create "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/authentication_system/bin/parser/system_bin") (!system_table) [Closures]; 
                                               _2
                                              )
-# 278 "src/dsl/parser.ml"
+# 292 "src/dsl/parser.ml"
                : Authentication_system.System_new.t))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 40 "src/dsl/parser.mly"
                 ()
-# 284 "src/dsl/parser.ml"
+# 298 "src/dsl/parser.ml"
                : 'empty_lines))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'empty_lines) in
     Obj.repr(
 # 41 "src/dsl/parser.mly"
                      ()
-# 291 "src/dsl/parser.ml"
+# 305 "src/dsl/parser.ml"
                : 'empty_lines))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -302,7 +316,7 @@ let yyact = [|
                                 let () = selected_operator := admin in
                                 system
                             )
-# 306 "src/dsl/parser.ml"
+# 320 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -314,7 +328,7 @@ let yyact = [|
                                 let () = selected_operator := System_new.Node.operator _5 in
                                 get_system _3
                             )
-# 318 "src/dsl/parser.ml"
+# 332 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -330,7 +344,7 @@ let yyact = [|
                                 let () = update_system _3 system in 
                                 system
                             )
-# 334 "src/dsl/parser.ml"
+# 348 "src/dsl/parser.ml"
                : 'init_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
@@ -342,7 +356,7 @@ let yyact = [|
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent:System_new.root_node
                             )
-# 346 "src/dsl/parser.ml"
+# 360 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -356,7 +370,7 @@ let yyact = [|
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent
                             )
-# 360 "src/dsl/parser.ml"
+# 374 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -370,7 +384,7 @@ let yyact = [|
                                 System_new.add_organisation system ~maintainer:(!selected_operator) ~organisation
                                     ~parent
                             )
-# 374 "src/dsl/parser.ml"
+# 388 "src/dsl/parser.ml"
                : 'add_organisation_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
@@ -385,7 +399,7 @@ let yyact = [|
                                 System_new.add_location system location ~parent
                                     ~entrances:_8
                             )
-# 389 "src/dsl/parser.ml"
+# 403 "src/dsl/parser.ml"
                : 'add_location_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 5 : string) in
@@ -400,14 +414,14 @@ let yyact = [|
                                 System_new.add_location system location ~parent
                                     ~entrances:_8
                             )
-# 404 "src/dsl/parser.ml"
+# 418 "src/dsl/parser.ml"
                : 'add_location_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
 # 107 "src/dsl/parser.mly"
              ([System_new.Node.location _1])
-# 411 "src/dsl/parser.ml"
+# 425 "src/dsl/parser.ml"
                : 'location_list))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -415,7 +429,7 @@ let yyact = [|
     Obj.repr(
 # 108 "src/dsl/parser.mly"
                              ((System_new.Node.location _1) :: _3)
-# 419 "src/dsl/parser.ml"
+# 433 "src/dsl/parser.ml"
                : 'location_list))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 0 : string) in
@@ -426,7 +440,7 @@ let yyact = [|
                                 let system = get_selected_system () in
                                 System_new.add_operator system ~operator
                             )
-# 430 "src/dsl/parser.ml"
+# 444 "src/dsl/parser.ml"
                : 'add_operator_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : string) in
@@ -435,14 +449,14 @@ let yyact = [|
                 (let system = get_selected_system () in
                 let attribute_id = System_new.Node.attribute_id _1 in
                 System_new.Node.Attribute_required (System_new.get_attribute_by_id system attribute_id))
-# 439 "src/dsl/parser.ml"
+# 453 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 1 : 'attribute_condition) in
     Obj.repr(
 # 122 "src/dsl/parser.mly"
                                        (_2)
-# 446 "src/dsl/parser.ml"
+# 460 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'attribute_condition) in
@@ -450,7 +464,7 @@ let yyact = [|
     Obj.repr(
 # 123 "src/dsl/parser.mly"
                                                  (System_new.Node.And (_1, _3))
-# 454 "src/dsl/parser.ml"
+# 468 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'attribute_condition) in
@@ -458,20 +472,20 @@ let yyact = [|
     Obj.repr(
 # 124 "src/dsl/parser.mly"
                                                 (System_new.Node.Or (_1, _3))
-# 462 "src/dsl/parser.ml"
+# 476 "src/dsl/parser.ml"
                : 'attribute_condition))
 ; (fun __caml_parser_env ->
     Obj.repr(
 # 127 "src/dsl/parser.mly"
                     (System_new.Node.Never)
-# 468 "src/dsl/parser.ml"
+# 482 "src/dsl/parser.ml"
                : 'with_attribute_condition))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'attribute_condition) in
     Obj.repr(
 # 128 "src/dsl/parser.mly"
                                                       (_2)
-# 475 "src/dsl/parser.ml"
+# 489 "src/dsl/parser.ml"
                : 'with_attribute_condition))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 1 : string) in
@@ -483,7 +497,7 @@ let yyact = [|
                                 let system = get_selected_system () in
                                 System_new.add_attribute_maintainer_under_operator system ~attribute_maintainer ~operator:(!selected_operator)
                             )
-# 487 "src/dsl/parser.ml"
+# 501 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
@@ -500,7 +514,7 @@ let yyact = [|
                                 System_new.add_attribute_maintainer_under_maintainer system 
                                 ~attribute_maintainer ~attribute_maintainer_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer parent_maintainer)
                             )
-# 504 "src/dsl/parser.ml"
+# 518 "src/dsl/parser.ml"
                : 'add_attribute_handler_line))
 ; (fun __caml_parser_env ->
     let _3 = (Parsing.peek_val __caml_parser_env 4 : string) in
@@ -516,42 +530,42 @@ let yyact = [|
                                 System_new.add_attribute system ~attribute ~attribute_maintainer:(System_new.Node.attribute_maintainer_node_of_attribute_maintainer attribute_maintainer)
 
                             )
-# 520 "src/dsl/parser.ml"
+# 534 "src/dsl/parser.ml"
                : 'add_attribute_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_location_line) in
     Obj.repr(
 # 156 "src/dsl/parser.mly"
                       (_1)
-# 527 "src/dsl/parser.ml"
+# 541 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_organisation_line) in
     Obj.repr(
 # 157 "src/dsl/parser.mly"
                            (_1)
-# 534 "src/dsl/parser.ml"
+# 548 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_operator_line) in
     Obj.repr(
 # 158 "src/dsl/parser.mly"
                        (_1)
-# 541 "src/dsl/parser.ml"
+# 555 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_attribute_handler_line) in
     Obj.repr(
 # 159 "src/dsl/parser.mly"
                                 (_1)
-# 548 "src/dsl/parser.ml"
+# 562 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_attribute_line) in
     Obj.repr(
 # 160 "src/dsl/parser.mly"
                         (_1)
-# 555 "src/dsl/parser.ml"
+# 569 "src/dsl/parser.ml"
                : 'add_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -561,10 +575,10 @@ let yyact = [|
                                        (let to_ =  System_new.Node.organisation _5 in 
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 568 "src/dsl/parser.ml"
+# 582 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -574,10 +588,10 @@ let yyact = [|
                                     (let to_ =  System_new.Node.location _5 in 
                                         let from = System_new.Node.operator _2 in
                                         let system = get_selected_system () in 
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 581 "src/dsl/parser.ml"
+# 595 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -589,10 +603,10 @@ let yyact = [|
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id _4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 596 "src/dsl/parser.ml"
+# 610 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
@@ -605,10 +619,10 @@ let yyact = [|
                                         let attribute_maintainer_id = System_new.Node.attribute_id _4 in
                                         let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
                                         System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 612 "src/dsl/parser.ml"
+# 626 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -620,10 +634,10 @@ let yyact = [|
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
                                         let to_ = System_new.Node.organisation _4 in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
                                         
                                         )
-# 627 "src/dsl/parser.ml"
+# 641 "src/dsl/parser.ml"
                : 'grant_line))
 ; (fun __caml_parser_env ->
     let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
@@ -635,15 +649,101 @@ let yyact = [|
                                         let attribute_id = System_new.Node.attribute_id _7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
                                         let to_ = System_new.Node.location _4 in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
                                         )
-# 641 "src/dsl/parser.ml"
+# 655 "src/dsl/parser.ml"
                : 'grant_line))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
+    let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 209 "src/dsl/parser.mly"
+                                        (let to_ =  System_new.Node.organisation _5 in 
+                                        let from = System_new.Node.operator _2 in
+                                        let system = get_selected_system () in 
+                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        )
+# 668 "src/dsl/parser.ml"
+               : 'revoke_line))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 3 : string) in
+    let _5 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 215 "src/dsl/parser.mly"
+                                     (let to_ =  System_new.Node.location _5 in 
+                                        let from = System_new.Node.operator _2 in
+                                        let system = get_selected_system () in 
+                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        )
+# 681 "src/dsl/parser.ml"
+               : 'revoke_line))
 ; (fun __caml_parser_env ->
     let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
     let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
     Obj.repr(
-# 209 "src/dsl/parser.mly"
+# 221 "src/dsl/parser.mly"
+                            (
+                                        let from = System_new.Node.operator _2 in
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id _4 in
+                                        let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        )
+# 696 "src/dsl/parser.ml"
+               : 'revoke_line))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
+    let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 229 "src/dsl/parser.mly"
+                                    (
+                                        let from = System_new.Node.operator _2 in
+                                        let system = get_selected_system () in 
+                                        let attribute_maintainer_id = System_new.Node.attribute_id _4 in
+                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
+                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
+                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        )
+# 712 "src/dsl/parser.ml"
+               : 'revoke_line))
+; (fun __caml_parser_env ->
+    let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
+    let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 238 "src/dsl/parser.mly"
+                                                        (
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id _7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.organisation _4 in
+                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        )
+# 727 "src/dsl/parser.ml"
+               : 'revoke_line))
+; (fun __caml_parser_env ->
+    let _4 = (Parsing.peek_val __caml_parser_env 3 : string) in
+    let _7 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 246 "src/dsl/parser.mly"
+                                                    (
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id _7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.location _4 in
+                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        )
+# 741 "src/dsl/parser.ml"
+               : 'revoke_line))
+; (fun __caml_parser_env ->
+    let _2 = (Parsing.peek_val __caml_parser_env 2 : string) in
+    let _4 = (Parsing.peek_val __caml_parser_env 0 : string) in
+    Obj.repr(
+# 255 "src/dsl/parser.mly"
                                     (
                                         let operator = System_new.Node.operator _2 in 
                                         let system = get_selected_system () in 
@@ -651,60 +751,67 @@ let yyact = [|
                                         System_new.move_operator system ~operator ~to_
 
                                     )
-# 655 "src/dsl/parser.ml"
+# 755 "src/dsl/parser.ml"
                : 'move_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'add_line) in
     Obj.repr(
-# 218 "src/dsl/parser.mly"
+# 264 "src/dsl/parser.mly"
                (let () = update_selected_system _1 in _1)
-# 662 "src/dsl/parser.ml"
+# 762 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'grant_line) in
     Obj.repr(
-# 219 "src/dsl/parser.mly"
+# 265 "src/dsl/parser.mly"
                  (let () = update_selected_system _1 in _1)
-# 669 "src/dsl/parser.ml"
+# 769 "src/dsl/parser.ml"
+               : 'content_line))
+; (fun __caml_parser_env ->
+    let _1 = (Parsing.peek_val __caml_parser_env 0 : 'revoke_line) in
+    Obj.repr(
+# 266 "src/dsl/parser.mly"
+                  (let () = update_selected_system _1 in _1)
+# 776 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'init_line) in
     Obj.repr(
-# 220 "src/dsl/parser.mly"
+# 267 "src/dsl/parser.mly"
                  (_1)
-# 676 "src/dsl/parser.ml"
+# 783 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 0 : 'move_line) in
     Obj.repr(
-# 221 "src/dsl/parser.mly"
+# 268 "src/dsl/parser.mly"
                 (let () = update_selected_system _1 in _1)
-# 683 "src/dsl/parser.ml"
+# 790 "src/dsl/parser.ml"
                : 'content_line))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 1 : 'empty_lines) in
     let _2 = (Parsing.peek_val __caml_parser_env 0 : 'content_line) in
     Obj.repr(
-# 224 "src/dsl/parser.mly"
+# 271 "src/dsl/parser.mly"
                              (
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json _2);
       _2)
-# 694 "src/dsl/parser.ml"
+# 801 "src/dsl/parser.ml"
                : 'line))
 ; (fun __caml_parser_env ->
     Obj.repr(
-# 229 "src/dsl/parser.mly"
+# 276 "src/dsl/parser.mly"
               (get_selected_system ())
-# 700 "src/dsl/parser.ml"
+# 807 "src/dsl/parser.ml"
                : 'lines))
 ; (fun __caml_parser_env ->
     let _1 = (Parsing.peek_val __caml_parser_env 2 : 'lines) in
     let _3 = (Parsing.peek_val __caml_parser_env 0 : 'line) in
     Obj.repr(
-# 230 "src/dsl/parser.mly"
+# 277 "src/dsl/parser.mly"
                     (_3)
-# 708 "src/dsl/parser.ml"
+# 815 "src/dsl/parser.ml"
                : 'lines))
 (* Entry main *)
 ; (fun __caml_parser_env -> raise (Parsing.YYexit (Parsing.peek_val __caml_parser_env 0)))

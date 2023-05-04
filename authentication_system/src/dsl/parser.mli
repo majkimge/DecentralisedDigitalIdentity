@@ -5,6 +5,7 @@ type token =
   | JOIN
   | GRANT
   | ACCESS_TO
+  | REVOKE
   | SYSTEM
   | LOCATION
   | ORGANISATION

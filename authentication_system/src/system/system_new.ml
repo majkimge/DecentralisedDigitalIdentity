@@ -1014,16 +1014,27 @@ let add_permission_edge t ~operator (type a c) ~(from : (a, c) Node.t)
             ~from:(Any from : any_node)
             ~to_:(Any to_ : any_node)]
 
-let delete_permission_edge t ~operator ~node =
+let grant_attribute t ~operator ~(from : (Node.operator, Node.operator) Node.t)
+    (type b) ~(to_ : (b, Node.attribute_maintainer) Node.t) =
+  add_permission_edge t ~operator ~from ~to_
+
+let grant_access t ~operator ~(from : (Node.operator, Node.operator) Node.t)
+    (type b) ~(to_ : (b, Node.organisation) Node.t) =
+  add_permission_edge t ~operator ~from ~to_
+
+let automatic_permission t ~operator
+    ~(from : (Node.attribute, Node.attribute_maintainer) Node.t) (type b)
+    ~(to_ : (b, Node.organisation) Node.t) =
+  add_permission_edge t ~operator ~from ~to_
+
+let delete_permission_edge t ~operator ~from ~to_ =
   let { permission_dag; _ } = t in
   let permission_dag_ref = ref permission_dag in
   match
-    Permission_DAG.can_add_permission_edge_to permission_dag_ref operator node
+    Permission_DAG.can_add_permission_edge_to permission_dag_ref operator to_
   with
   | true ->
-      let () =
-        Permission_DAG.delete_edge permission_dag_ref ~from:operator ~to_:node
-      in
+      let () = Permission_DAG.delete_edge permission_dag_ref ~from ~to_ in
       { t with permission_dag = !permission_dag_ref }
   | false ->
       raise_s
@@ -1031,7 +1042,20 @@ let delete_permission_edge t ~operator ~node =
           "No permission to add edge"
             ~permission_dag:(Permission_DAG.to_string permission_dag : string)
             (operator : (Node.operator, Node.operator) Node.t)
-            ~node:(Any node : any_node)]
+            ~to_:(Any to_ : any_node)]
+
+let revoke_attribute t ~operator ~(from : (Node.operator, Node.operator) Node.t)
+    (type b) ~(to_ : (b, Node.attribute_maintainer) Node.t) =
+  delete_permission_edge t ~operator ~from ~to_
+
+let revoke_access t ~operator ~(from : (Node.operator, Node.operator) Node.t)
+    (type b) ~(to_ : (b, Node.organisation) Node.t) =
+  delete_permission_edge t ~operator ~from ~to_
+
+let revoke_automatic_permission t ~operator
+    ~(from : (Node.attribute, Node.attribute_maintainer) Node.t) (type b)
+    ~(to_ : (b, Node.organisation) Node.t) =
+  delete_permission_edge t ~operator ~from ~to_
 
 let can_access t ~operator ~node =
   let { name = _; position_tree; permission_dag } = t in

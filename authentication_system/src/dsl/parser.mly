@@ -15,7 +15,7 @@
     let update_selected_system system = update_system (!selected_system) system
     let get_selected_system () = get_system (!selected_system);;
 %}
-%token CREATE MOVE SELECT JOIN GRANT ACCESS_TO
+%token CREATE MOVE SELECT JOIN GRANT ACCESS_TO REVOKE
 %token SYSTEM
 %token LOCATION ORGANISATION ATTRIBUTE ATTRIBUTE_HANDLER OPERATOR
 %token IN UNDER TO WITH
@@ -163,13 +163,13 @@ grant_line:
     GRANT ID ACCESS_TO ORGANISATION ID {let to_ =  System_new.Node.organisation $5 in 
                                         let from = System_new.Node.operator $2 in
                                         let system = get_selected_system () in 
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
                                         
                                         }
     |GRANT ID ACCESS_TO LOCATION ID {let to_ =  System_new.Node.location $5 in 
                                         let from = System_new.Node.operator $2 in
                                         let system = get_selected_system () in 
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_access system ~operator:(!selected_operator) ~from ~to_
                                         
                                         }                               
     |GRANT ID ATTRIBUTE ID {
@@ -177,7 +177,7 @@ grant_line:
                                         let system = get_selected_system () in 
                                         let attribute_id = System_new.Node.attribute_id $4 in
                                         let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
                                         
                                         }
     |GRANT ID ATTRIBUTE_HANDLER ID {
@@ -186,7 +186,7 @@ grant_line:
                                         let attribute_maintainer_id = System_new.Node.attribute_id $4 in
                                         let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
                                         System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.grant_attribute system ~operator:(!selected_operator) ~from ~to_
                                         
                                         }
     |GRANT ACCESS_TO ORGANISATION ID WITH ATTRIBUTE ID {
@@ -194,7 +194,7 @@ grant_line:
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
                                         let to_ = System_new.Node.organisation $4 in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
+                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
                                         
                                         }
     |GRANT ACCESS_TO LOCATION ID WITH ATTRIBUTE ID {
@@ -202,8 +202,54 @@ grant_line:
                                         let attribute_id = System_new.Node.attribute_id $7 in
                                         let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
                                         let to_ = System_new.Node.location $4 in
-                                        System_new.add_permission_edge system ~operator:(!selected_operator) ~from ~to_
-                                        };               
+                                        System_new.automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        };    
+
+revoke_line:
+    REVOKE ID ACCESS_TO ORGANISATION ID {let to_ =  System_new.Node.organisation $5 in 
+                                        let from = System_new.Node.operator $2 in
+                                        let system = get_selected_system () in 
+                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }
+    |REVOKE ID ACCESS_TO LOCATION ID {let to_ =  System_new.Node.location $5 in 
+                                        let from = System_new.Node.operator $2 in
+                                        let system = get_selected_system () in 
+                                        System_new.revoke_access system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }                               
+    |REVOKE ID ATTRIBUTE ID {
+                                        let from = System_new.Node.operator $2 in
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id $4 in
+                                        let to_ = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }
+    |REVOKE ID ATTRIBUTE_HANDLER ID {
+                                        let from = System_new.Node.operator $2 in
+                                        let system = get_selected_system () in 
+                                        let attribute_maintainer_id = System_new.Node.attribute_id $4 in
+                                        let to_ = System_new.get_attribute_maintainer_by_id system attribute_maintainer_id |>
+                                        System_new.Node.attribute_maintainer_node_of_attribute_maintainer in
+                                        System_new.revoke_attribute system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }
+    |REVOKE ACCESS_TO ORGANISATION ID WITH ATTRIBUTE ID {
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id $7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.organisation $4 in
+                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        
+                                        }
+    |REVOKE ACCESS_TO LOCATION ID WITH ATTRIBUTE ID {
+                                        let system = get_selected_system () in 
+                                        let attribute_id = System_new.Node.attribute_id $7 in
+                                        let from = System_new.get_attribute_by_id system attribute_id |> System_new.Node.attribute_node_of_attribute in
+                                        let to_ = System_new.Node.location $4 in
+                                        System_new.revoke_automatic_permission system ~operator:(!selected_operator) ~from ~to_
+                                        };              
 
 move_line:
     MOVE ID TO ID                   {
@@ -217,6 +263,7 @@ move_line:
 content_line:
     |add_line  {let () = update_selected_system $1 in $1}
     |grant_line  {let () = update_selected_system $1 in $1}
+    |revoke_line  {let () = update_selected_system $1 in $1}
     |init_line   {$1}
     |move_line  {let () = update_selected_system $1 in $1};
 

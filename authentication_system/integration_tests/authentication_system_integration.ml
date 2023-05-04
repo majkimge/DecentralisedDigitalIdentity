@@ -58,22 +58,20 @@ let%expect_test "Pembroke_test" =
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:admin ~from:fellow_attribute
-      ~to_:locationB
+    System_new.automatic_permission system ~operator:admin
+      ~from:fellow_attribute ~to_:locationB
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:admin ~from:anil
-      ~to_:locationA
+    System_new.grant_access system ~operator:admin ~from:anil ~to_:locationA
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:admin ~from:anil
-      ~to_:main_site
+    System_new.grant_access system ~operator:admin ~from:anil ~to_:main_site
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:admin ~from:anil
+    System_new.grant_attribute system ~operator:admin ~from:anil
       ~to_:fellow_attribute
   in
 
@@ -183,11 +181,11 @@ let%expect_test "Ticketing_test" =
       ~entrances:[ System_new.root_node; main_site ]
   in
   let system =
-    System_new.add_permission_edge system ~operator:college_admin
+    System_new.automatic_permission system ~operator:college_admin
       ~from:internal_event_ticket ~to_:meeting_room
   in
   let system =
-    System_new.add_permission_edge system ~operator:college_admin
+    System_new.automatic_permission system ~operator:college_admin
       ~from:external_event_ticket ~to_:main_site
   in
   print_string (Yojson.to_string (System_new.to_json system));

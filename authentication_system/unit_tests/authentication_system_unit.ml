@@ -101,7 +101,7 @@ let%expect_test "add permission" =
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:test_operator
+    System_new.grant_attribute system ~operator:test_operator
       ~from:test_operator ~to_:attribute1
   in
 
@@ -124,13 +124,13 @@ let%expect_test "delete permission" =
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:test_operator
+    System_new.grant_attribute system ~operator:test_operator
       ~from:test_operator ~to_:attribute1
   in
 
   let system =
-    System_new.delete_permission_edge system ~operator:test_operator
-      ~node:attribute1
+    System_new.revoke_attribute system ~operator:test_operator
+      ~from:test_operator ~to_:attribute1
   in
 
   print_system system;
@@ -160,11 +160,11 @@ let%expect_test "move_operator_success" =
   in
 
   let system =
-    System_new.add_permission_edge system ~operator:test_operator
+    System_new.grant_attribute system ~operator:test_operator
       ~from:test_operator ~to_:attribute1
   in
   let system =
-    System_new.add_permission_edge system ~operator:test_operator
+    System_new.automatic_permission system ~operator:test_operator
       ~from:attribute1 ~to_:test_location1
   in
   let system =
@@ -197,7 +197,7 @@ let%expect_test "move_operator_fail" =
     System_new.add_attribute system ~attribute:attribute1 ~attribute_maintainer
   in
   let system =
-    System_new.add_permission_edge system ~operator:test_operator
+    System_new.automatic_permission system ~operator:test_operator
       ~from:attribute1 ~to_:test_location1
   in
   try
