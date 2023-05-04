@@ -5,10 +5,9 @@ module Node : sig
   type location [@@deriving sexp_of]
   type organisation [@@deriving sexp_of]
   type attribute_id [@@deriving sexp_of]
-
   type attribute [@@deriving sexp_of]
 
-  and attribute_condition =
+  type attribute_condition =
     | Always
     | Never
     | Attribute_required of attribute
@@ -16,21 +15,8 @@ module Node : sig
     | Or of attribute_condition * attribute_condition
   [@@deriving sexp_of]
 
-  and attribute_maintainer = {
-    attribute_maintainer_id : attribute_id;
-    attribute_maintainer_condition : attribute_condition;
-  }
-  [@@deriving compare, equal, sexp_of]
-
-  type (_, _) t =
-    | Operator : operator -> (operator, operator) t
-    | Location : location -> (location, organisation) t
-    | Organisation : organisation -> (organisation, organisation) t
-    | Attribute_maintainer :
-        attribute_maintainer
-        -> (attribute_maintainer, attribute_maintainer) t
-    | Attribute : attribute -> (attribute, attribute_maintainer) t
-  [@@deriving sexp_of]
+  type attribute_maintainer
+  type (_, _) t [@@deriving sexp_of]
 
   val attribute_id : string -> attribute_id
   val location : string -> (location, organisation) t
@@ -52,20 +38,7 @@ module Node : sig
     attribute_maintainer -> (attribute_maintainer, attribute_maintainer) t
 end
 
-module Position_tree : sig
-  type t [@@deriving sexp_of]
-end
-
-module Permission_DAG : sig
-  type t [@@deriving sexp_of]
-end
-
-type t = {
-  name : string;
-  position_tree : Position_tree.t ref;
-  permission_dag : Permission_DAG.t;
-}
-[@@deriving sexp_of]
+type t [@@deriving sexp_of]
 
 val create : (Node.operator, Node.operator) Node.t -> string -> t
 val root_node : (Node.location, Node.organisation) Node.t

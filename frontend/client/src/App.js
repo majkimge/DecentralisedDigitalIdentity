@@ -17,9 +17,9 @@ import { encrypt, decrypt } from "ethereum-cryptography/aes"
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-const strengthConst = -20  //-200 for actual
-const nodeRadiusConst = 10 //15 for actual
-const withMarkersForPermissions = false //true for actual
+const strengthConst = -200  //-200 for actual, -20 for big
+const nodeRadiusConst = 15 //15 for actual, 10 for big
+const withMarkersForPermissions = true //true for actual, false for big
 
 function generateSalt(length) {
   let res = '';

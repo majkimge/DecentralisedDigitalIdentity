@@ -43,7 +43,7 @@ let system =
 in
 let system =
   System_new.grant_attribute system ~operator:cambridge_admin
-    ~from:college_admin ~to_:student_attribute
+    ~from:cambridge_admin ~to_:student_attribute
 in
 system
 ;;
