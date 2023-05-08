@@ -69,7 +69,7 @@ if __name__ == "__main__":
                         entrances += f", {building}"
             building_creation[
                 i
-            ] += f"create location {college}_building_{j} in location {parent} with entrances to {entrances}\n"
+            ] += f"create resource {college}_building_{j} in resource {parent} with entrances to {entrances}\n"
 
     for i in range(NUMBER_OF_PEOPLE):
         name_list.append("_".join(names.get_full_name().split()))
@@ -83,7 +83,7 @@ if __name__ == "__main__":
             ] += f"create attribute {college}_access_to_building{j} under attribute handler {college}_handler granted automatically if {random_condition(i)}\n"
             access_granting[
                 i
-            ] += f"grant access to location {college}_building_{j} with attribute {college}_access_to_building{j}\n"
+            ] += f"grant access to resource {college}_building_{j} with attribute {college}_access_to_building{j}\n"
         for name in name_list:
             if rand(120):
                 access_granting[i] += f"grant {name} attribute {college}_fellow\n"
@@ -92,9 +92,9 @@ if __name__ == "__main__":
 
     admins_join = list(
         map(
-            lambda name: f"""join system Cambridge_big as {name}_admin\ncreate organisation {name}\ncreate attribute handler {name}_handler
+            lambda name: f"""join system Cambridge_big as {name}_admin\ncreate resource handler {name}\ncreate attribute handler {name}_handler
 create attribute {name}_fellow under attribute handler {name}_handler\ncreate attribute {name}_student under attribute handler {name}_handler
-create location {name}_main_site in organisation {name} with entrances to world\n""",
+create resource {name}_main_site in resource handler {name} with entrances to world\n""",
             colleges,
         )
     )

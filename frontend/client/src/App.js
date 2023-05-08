@@ -10,16 +10,18 @@ import * as secp from "ethereum-cryptography/secp256k1"
 import { sha256 } from "ethereum-cryptography/sha256"
 import secureLocalStorage from "react-secure-storage"
 import CryptoJS from "crypto-js"
-import { line } from "d3";
+import { csvParse, line } from "d3";
 import { pbkdf2Sync } from "ethereum-cryptography/pbkdf2"
 import { utf8ToBytes, hexToBytes, bytesToHex } from 'ethereum-cryptography/utils'
 import { encrypt, decrypt } from "ethereum-cryptography/aes"
 
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-const strengthConst = -200  //-200 for actual, -20 for big
-const nodeRadiusConst = 15 //15 for actual, 10 for big
+const bigStrengthConst = -5 //-200 for actual, -20 for big
+const bigNodeRadiusConst = 10 //15 for actual, 10 for big
 const withMarkersForPermissions = true //true for actual, false for big
+const strengthConsts = [-5, -200]
+const nodeRadiusConsts = [10, 15]
 
 function generateSalt(length) {
   let res = '';
@@ -56,7 +58,7 @@ function dagWithIncluded(dagJson, includedNodes) {
 
 function onlyAttributeDag(dagJson) {
   // excludedNodes = nodeObjects.filter(node => node.group === "operator" ||node.group === "attribute" ||node.group === "attribute_handler")
-  let excludedNodes = dagJson.nodes.filter(node => node.group === "location" || node.group === "organisation")
+  let excludedNodes = dagJson.nodes.filter(node => node.group === "resource" || node.group === "resource_handler")
   return dagWithoutExcluded(dagJson, excludedNodes)
 }
 
@@ -104,7 +106,7 @@ function onlyGivenCollegeDag(dagJson, collegeName) {
 }
 
 function onlyLocationDag(dagJson) {
-  let excludedNodes = dagJson.nodes.filter(node => node.group === "attribute" || node.group === "attribute_maintainer")
+  let excludedNodes = dagJson.nodes.filter(node => node.group === "attribute" || node.group === "attribute_handler")
   return dagWithoutExcluded(dagJson, excludedNodes)
 }
 
@@ -162,8 +164,10 @@ class EssayForm extends React.Component {
   accountOfName(name) {
     let accounts = secureLocalStorage.getItem('accounts');
     for (let i = 0; i < accounts.length; i++) {
+      console.log("acc name")
+      console.log(accounts[i].name)
       if (accounts[i].name === name) {
-
+        console.log("found")
         return accounts[i];
       }
 
@@ -171,6 +175,36 @@ class EssayForm extends React.Component {
     alert("No account with that name found");
     return null;
   }
+
+  nameOfAdress(address) {
+    let accounts = secureLocalStorage.getItem('accounts');
+    for (let i = 0; i < accounts.length; i++) {
+      if (accounts[i].publicKey === address) {
+
+        return accounts[i].name;
+      }
+    }
+    return address;
+  }
+
+  codeWithAddresses(commands, accounts) {
+    let lines = commands.split('\n')
+    for (let i = 0; i < lines.length; ++i) {
+      let words = lines[i].split(" ")
+      for (let j = 0; j < words.length; ++j) {
+        let word = words[j]
+        for (let k = 0; k < accounts.length; ++k) {
+          let account = accounts[k]
+          if (word === account.name) {
+            words[j] = account.publicKey
+          }
+        }
+      }
+      lines[i] = words.join(" ")
+    }
+    return lines.join("\n")
+  }
+
 
 
   handleSubmit(event) {
@@ -183,7 +217,9 @@ class EssayForm extends React.Component {
       let privateKeyEncrypted = await account.privateKeyEncrypted;
       console.log(privateKeyEncrypted)
       let privateKey = await getDecryptedKey(hexToBytes(privateKeyEncrypted))
-      let commandsArray = string2Uint8Array(commands)
+      let accounts = secureLocalStorage.getItem('accounts');
+      let commandsSubbed = this.codeWithAddresses(commands, accounts)
+      let commandsArray = string2Uint8Array(commandsSubbed)
       let commandsHash = sha256(commandsArray)
       let signedMessage = secp.signSync(commandsHash, privateKey)
       let publicKey = account.publicKey
@@ -198,7 +234,7 @@ class EssayForm extends React.Component {
             'Content-Type': 'application/json'
             // 'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: JSON.stringify({ commands: this.state.value, signedCommands: bytesToHex(signedMessage), publicKey: bytesToHex(publicKey) }) // body data type must match "Content-Type" header
+          body: JSON.stringify({ commands: commandsSubbed, signedCommands: bytesToHex(signedMessage), publicKey: bytesToHex(publicKey) }) // body data type must match "Content-Type" header
         });
       const content = await rawResponse.json();
       console.log(content);
@@ -213,10 +249,11 @@ class EssayForm extends React.Component {
       this.props.position_tree_svg.current.appendChild(ForceGraph(content.message.position_tree
         , {
           nodeId: d => d.id,
-          nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: nodeRadiusConst,
-          nodeStrength: strengthConst,
+          withText: content.message.position_tree.nodes.length < 20,
+          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+          nodeRadius: nodeRadiusConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
+          nodeStrength: strengthConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
           with_markers: false
         }
@@ -225,13 +262,14 @@ class EssayForm extends React.Component {
       while (this.props.permission_dag_svg.current.children.length > 0) {
         this.props.permission_dag_svg.current.removeChild(this.props.permission_dag_svg.current.children[0])
       }
-      this.props.permission_dag_svg.current.appendChild(ForceGraph(content.message.permission_dag
+      this.props.permission_dag_svg.current.appendChild(ForceGraph((content.message.permission_dag)
         , {
           nodeId: d => d.id,
-          nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: nodeRadiusConst,
-          nodeStrength: strengthConst,
+          withText: content.message.permission_dag.nodes.length < 20,
+          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
           with_markers: withMarkersForPermissions
         }
@@ -243,10 +281,11 @@ class EssayForm extends React.Component {
       this.props.location_permission_dag_svg.current.appendChild(ForceGraph(onlyLocationDag((content.message.permission_dag))
         , {
           nodeId: d => d.id,
-          nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: nodeRadiusConst,
-          nodeStrength: strengthConst,
+          withText: content.message.permission_dag.nodes.length < 20,
+          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
           with_markers: withMarkersForPermissions,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
@@ -258,10 +297,11 @@ class EssayForm extends React.Component {
       this.props.attribute_permission_dag_svg.current.appendChild(ForceGraph(onlyAttributeDag((content.message.permission_dag))
         , {
           nodeId: d => d.id,
-          nodeGroup: d => d.group,
-          nodeTitle: d => `${d.id}\n${d.group}`,
-          nodeRadius: nodeRadiusConst,
-          nodeStrength: strengthConst,
+          withText: content.message.permission_dag.nodes.length < 20,
+          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
           with_markers: withMarkersForPermissions,
           nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
         }
@@ -461,7 +501,8 @@ class RestoreKeyRow extends React.Component {
       const mnemonic = this.state.mnemonic
 
       let key = this.getHdRootKey(mnemonicToEntropy(mnemonic, wordlist));
-      secureLocalStorage.setItem("master_key", JSON.stringify(key))
+      let encryptedKey1 = await getEncryptedKey(mnemonicToEntropy(mnemonic, wordlist))
+      secureLocalStorage.setItem("master_key", key2hex(encryptedKey1))
       let privateKey = this.generatePrivateKey(key, 0);
       let publicKey = getPublicKey(privateKey);
       let privateKeyEncrypted = await getEncryptedKey(privateKey)
@@ -528,7 +569,9 @@ class AddNewKeyRow extends React.Component {
         ({ mnemonic, entropy } = this._generateMnemonic());
         let key = this.getHdRootKey(entropy);
         console.log(key)
-        secureLocalStorage.setItem("master_key", JSON.stringify(key))
+        let hdKeyExtended = entropy
+        let encryptedKey = await getEncryptedKey(hdKeyExtended)
+        secureLocalStorage.setItem("master_key", key2hex(encryptedKey))
         let privateKey = this.generatePrivateKey(key, 0);
         let publicKey = getPublicKey(privateKey);
         console.log(privateKey)
@@ -539,8 +582,11 @@ class AddNewKeyRow extends React.Component {
         secureLocalStorage.setItem("accounts", [account])
         this.props.updateAccounts([account]);
       } else {
-        let key = JSON.parse(secureLocalStorage.getItem('master_key'));
-        key = HDKey.fromJSON(key)
+        console.log("key")
+        console.log(secureLocalStorage.getItem('master_key'))
+        let decryptedKey = await getDecryptedKey(hex2key(secureLocalStorage.getItem('master_key')))
+        let key = HDKey.fromMasterSeed(decryptedKey);
+
         console.log(key)
         let privateKey = this.generatePrivateKey(key, accountList.length);
         let publicKey = getPublicKey(privateKey);

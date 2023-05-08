@@ -4,8 +4,9 @@ module Node : sig
   type agent [@@deriving sexp_of]
   type resource [@@deriving sexp_of]
   type resource_handler [@@deriving sexp_of]
-  type attribute_id [@@deriving sexp_of]
   type attribute [@@deriving sexp_of]
+  type attribute_handler
+  type attribute_id [@@deriving sexp_of]
 
   type attribute_condition =
     | Always
@@ -15,7 +16,6 @@ module Node : sig
     | Or of attribute_condition * attribute_condition
   [@@deriving sexp_of]
 
-  type attribute_handler
   type (_, _) t [@@deriving sexp_of]
 
   val attribute_id : string -> attribute_id
@@ -30,9 +30,7 @@ module Node : sig
     attribute -> (attribute, attribute_handler) t
 
   val attribute_handler :
-    string ->
-    attribute_condition ->
-    (attribute_handler, attribute_handler) t
+    string -> attribute_condition -> (attribute_handler, attribute_handler) t
 
   val attribute_handler_node_of_attribute_handler :
     attribute_handler -> (attribute_handler, attribute_handler) t
@@ -46,7 +44,7 @@ val root_node : (Node.resource, Node.resource_handler) Node.t
 val add_resource :
   t ->
   (Node.resource, Node.resource_handler) Node.t ->
-  parent:('a, 'b) Node.t ->
+  parent:('a, Node.resource_handler) Node.t ->
   entrances:(Node.resource, Node.resource_handler) Node.t list ->
   t
 
@@ -54,7 +52,7 @@ val add_resource_handler :
   t ->
   maintainer:(Node.agent, Node.agent) Node.t ->
   resource_handler:(Node.resource_handler, Node.resource_handler) Node.t ->
-  parent:('a, 'b) Node.t ->
+  parent:('a, Node.resource_handler) Node.t ->
   t
 
 val add_agent : t -> agent:(Node.agent, Node.agent) Node.t -> t
@@ -62,21 +60,18 @@ val add_agent : t -> agent:(Node.agent, Node.agent) Node.t -> t
 val add_attribute :
   t ->
   attribute:(Node.attribute, Node.attribute_handler) Node.t ->
-  attribute_handler:
-    (Node.attribute_handler, Node.attribute_handler) Node.t ->
+  attribute_handler:(Node.attribute_handler, Node.attribute_handler) Node.t ->
   t
 
 val add_attribute_handler_under_agent :
   t ->
-  attribute_handler:
-    (Node.attribute_handler, Node.attribute_handler) Node.t ->
+  attribute_handler:(Node.attribute_handler, Node.attribute_handler) Node.t ->
   agent:(Node.agent, Node.agent) Node.t ->
   t
 
 val add_attribute_handler_under_maintainer :
   t ->
-  attribute_handler:
-    (Node.attribute_handler, Node.attribute_handler) Node.t ->
+  attribute_handler:(Node.attribute_handler, Node.attribute_handler) Node.t ->
   attribute_handler_maintainer:
     (Node.attribute_handler, Node.attribute_handler) Node.t ->
   t
@@ -124,14 +119,11 @@ val revoke_automatic_permission :
   t
 
 val move_agent :
-  t ->
-  agent:(Node.agent, Node.agent) Node.t ->
-  to_:('a, 'b) Node.t ->
-  t
+  t -> agent:(Node.agent, Node.agent) Node.t -> to_:('a, 'b) Node.t -> t
 (*
-    val routes : t -> (Node.resource, Node.resource_handler) Node.t -> (Node.resource, Node.resource_handler) Node.t list list
-    val delete_resource : t -> (Node.resource, Node.resource_handler) Node.t -> t
-*)
+      val routes : t -> (Node.resource, Node.resource_handler) Node.t -> (Node.resource, Node.resource_handler) Node.t list list
+      val delete_resource : t -> (Node.resource, Node.resource_handler) Node.t -> t
+  *)
 
 val get_attribute_by_id : t -> Node.attribute_id -> Node.attribute
 

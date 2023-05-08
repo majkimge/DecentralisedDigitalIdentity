@@ -98,9 +98,8 @@ app.get("/api", (req, res) => {
 app.post('/interpret', async (req, res) => {
     //var commands = req.body.commands;
     //console.log(commands);
-    let name = accountNameFromCommands(req.body.commands)
-    let publicKey = getPublicKey(name, req.body.publicKey)
-
+    // let publicKey = getPublicKey(name, req.body.publicKey)
+    let publicKey = accountNameFromCommands(req.body.commands)
     if (publicKey !== req.body.publicKey) {
         //ERROR
         console.error("Public key mismatch")
