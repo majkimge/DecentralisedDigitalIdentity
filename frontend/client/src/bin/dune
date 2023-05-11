@@ -1,0 +1,5 @@
+(executable
+ (name string_parser)
+ (libraries lwt.unix core dsl_front core_unix)
+ (preprocess
+  (pps ppx_jane ppx_sexp_message)))

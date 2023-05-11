@@ -1,0 +1,5 @@
+(library
+ (name dsl_front)
+ (libraries lwt.unix core yojson core_unix)
+ (preprocess
+  (pps ppx_jane ppx_sexp_message)))

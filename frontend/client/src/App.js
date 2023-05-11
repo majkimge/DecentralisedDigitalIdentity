@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./App.css";
 
 import { ForceGraph } from "./graph.js"
@@ -115,6 +115,17 @@ function string2Uint8Array(string) {
   return encoder.encode(string);
 }
 
+function passwordHash(password) {
+  let salt = secureLocalStorage.getItem("salt")
+  return CryptoJS.SHA3(password + salt);
+}
+
+function getProtectedItem(itemName) {
+  let password = window.sessionStorage.getItem('password');
+  let hashedPassword = passwordHash(password)
+  return secureLocalStorage.getItem(itemName + hashedPassword)
+}
+
 async function getEncryptedKey(privateKey) {
   let password = window.sessionStorage.getItem('password');
   let salt = secureLocalStorage.getItem('salt')
@@ -136,15 +147,21 @@ async function getDecryptedKey(privateKey) {
   return decryptedPassword
 }
 
+
+
+
 class EssayForm extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { value: 'Write your commands here' };
+    this.state = { value: 'Write your commands here', parses: false };
     this.handleChange = this.handleChange.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
-  handleChange(event) { this.setState({ value: event.target.value }); }
+  handleChange(event) {
+
+    this.setState({ ...this.state, value: event.target.value });
+  }
   accountNameFromCommands(commands) {
     let lines = commands.split('\n')
     for (let i = 0; i < lines.length; i++) {
@@ -162,7 +179,7 @@ class EssayForm extends React.Component {
   }
 
   accountOfName(name) {
-    let accounts = secureLocalStorage.getItem('accounts');
+    let accounts = getProtectedItem('accounts');
     for (let i = 0; i < accounts.length; i++) {
       console.log("acc name")
       console.log(accounts[i].name)
@@ -172,12 +189,11 @@ class EssayForm extends React.Component {
       }
 
     }
-    alert("No account with that name found");
     return null;
   }
 
   nameOfAdress(address) {
-    let accounts = secureLocalStorage.getItem('accounts');
+    let accounts = getProtectedItem('accounts');
     for (let i = 0; i < accounts.length; i++) {
       if (accounts[i].publicKey === address) {
 
@@ -209,24 +225,11 @@ class EssayForm extends React.Component {
 
   handleSubmit(event) {
     (async () => {
-      let commands = this.state.value
-      let accountName = this.accountNameFromCommands(commands)
-      let account = this.accountOfName(accountName)
-      console.log(account)
-      let password = window.sessionStorage.getItem('password')
-      let privateKeyEncrypted = await account.privateKeyEncrypted;
-      console.log(privateKeyEncrypted)
-      let privateKey = await getDecryptedKey(hexToBytes(privateKeyEncrypted))
-      let accounts = secureLocalStorage.getItem('accounts');
-      let commandsSubbed = this.codeWithAddresses(commands, accounts)
-      let commandsArray = string2Uint8Array(commandsSubbed)
-      let commandsHash = sha256(commandsArray)
-      let signedMessage = secp.signSync(commandsHash, privateKey)
-      let publicKey = account.publicKey
-      publicKey = hexToBytes(publicKey)
-      console.log(secp.verify(signedMessage, commandsHash, publicKey))
-      const rawResponse =
-        await fetch("http://localhost:3000/interpret", {
+      let commands1 = this.state.value
+      let accounts1 = getProtectedItem('accounts');
+      let commandsSubbed1 = this.codeWithAddresses(commands1, accounts1)
+      const rawResponse1 =
+        await fetch("/check", {
           method: 'POST', // *GET, POST, PUT, DELETE, etc.
 
           headers: {
@@ -234,78 +237,131 @@ class EssayForm extends React.Component {
             'Content-Type': 'application/json'
             // 'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: JSON.stringify({ commands: commandsSubbed, signedCommands: bytesToHex(signedMessage), publicKey: bytesToHex(publicKey) }) // body data type must match "Content-Type" header
+          body: JSON.stringify({ commands: commandsSubbed1 }) // body data type must match "Content-Type" header
         });
-      const content = await rawResponse.json();
-      console.log(content);
-      if (content.permission_problem) {
-        alert("No permission!")
+      const content1 = await rawResponse1.json();
+      let parses = true
+      if (content1.error.includes("false")) {
+        console.log(content1.error)
+        parses = false
       }
-      console.log(this.props.position_tree_svg.current);
-      while (this.props.position_tree_svg.current.children.length > 0) {
-        this.props.position_tree_svg.current.removeChild(this.props.position_tree_svg.current.children[0])
-      }
-      console.log(onlyGivenCollegeDag(content.message.permission_dag, "College0"))
-      this.props.position_tree_svg.current.appendChild(ForceGraph(content.message.position_tree
-        , {
-          nodeId: d => d.id,
-          withText: content.message.position_tree.nodes.length < 20,
-          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
-          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
-          nodeRadius: nodeRadiusConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
-          nodeStrength: strengthConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
-          with_markers: false
-        }
-      ))
+      console.log(content1)
+      if (parses) {
 
-      while (this.props.permission_dag_svg.current.children.length > 0) {
-        this.props.permission_dag_svg.current.removeChild(this.props.permission_dag_svg.current.children[0])
-      }
-      this.props.permission_dag_svg.current.appendChild(ForceGraph((content.message.permission_dag)
-        , {
-          nodeId: d => d.id,
-          withText: content.message.permission_dag.nodes.length < 20,
-          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
-          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
-          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
-          with_markers: withMarkersForPermissions
-        }
-      ))
 
-      while (this.props.location_permission_dag_svg.current.children.length > 0) {
-        this.props.location_permission_dag_svg.current.removeChild(this.props.location_permission_dag_svg.current.children[0])
-      }
-      this.props.location_permission_dag_svg.current.appendChild(ForceGraph(onlyLocationDag((content.message.permission_dag))
-        , {
-          nodeId: d => d.id,
-          withText: content.message.permission_dag.nodes.length < 20,
-          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
-          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
-          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          with_markers: withMarkersForPermissions,
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
-        }
-      ))
+        let commands = this.state.value
+        let accountName = this.accountNameFromCommands(commands)
+        let account = this.accountOfName(accountName)
+        if (!account) {
 
-      while (this.props.attribute_permission_dag_svg.current.children.length > 0) {
-        this.props.attribute_permission_dag_svg.current.removeChild(this.props.attribute_permission_dag_svg.current.children[0])
-      }
-      this.props.attribute_permission_dag_svg.current.appendChild(ForceGraph(onlyAttributeDag((content.message.permission_dag))
-        , {
-          nodeId: d => d.id,
-          withText: content.message.permission_dag.nodes.length < 20,
-          nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
-          nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
-          nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
-          with_markers: withMarkersForPermissions,
-          nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+          alert("No account with that name found");
+        } else {
+          console.log(account)
+          let password = window.sessionStorage.getItem('password')
+          let privateKeyEncrypted = await account.privateKeyEncrypted;
+          console.log(privateKeyEncrypted)
+          let privateKey = await getDecryptedKey(hexToBytes(privateKeyEncrypted))
+          let accounts = getProtectedItem('accounts');
+          let commandsSubbed = this.codeWithAddresses(commands, accounts)
+          let commandsArray = string2Uint8Array(commandsSubbed)
+          let commandsHash = sha256(commandsArray)
+          let signedMessage = secp.signSync(commandsHash, privateKey)
+          let publicKey = account.publicKey
+          publicKey = hexToBytes(publicKey)
+          console.log(secp.verify(signedMessage, commandsHash, publicKey))
+          const rawResponse =
+            await fetch("/interpret", {
+              method: 'POST', // *GET, POST, PUT, DELETE, etc.
+
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+                // 'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: JSON.stringify({ commands: commandsSubbed, signedCommands: bytesToHex(signedMessage), publicKey: bytesToHex(publicKey) }) // body data type must match "Content-Type" header
+            });
+          const content = await rawResponse.json();
+          console.log(content);
+          if (content.permission_problem) {
+            alert("No permission!")
+          }
+          let documents = secureLocalStorage.getItem("documents")
+          if (documents) {
+            documents = [{ commands: commandsSubbed, signedBy: bytesToHex(publicKey), signature: bytesToHex(signedMessage) }] + documents;
+          } else {
+            documents = [{ commands: commandsSubbed, signedBy: bytesToHex(publicKey), signature: bytesToHex(signedMessage) }];
+          }
+          secureLocalStorage.setItem("documents", documents);
+          this.props.updateDocuments();
+          console.log(this.props.position_tree_svg.current);
+          while (this.props.position_tree_svg.current.children.length > 0) {
+            this.props.position_tree_svg.current.removeChild(this.props.position_tree_svg.current.children[0])
+          }
+          console.log(onlyGivenCollegeDag(content.message.permission_dag, "College0"))
+          this.props.position_tree_svg.current.appendChild(ForceGraph(content.message.position_tree
+            , {
+              nodeId: d => d.id,
+              withText: content.message.position_tree.nodes.length < 20,
+              nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+              nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+              nodeRadius: nodeRadiusConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
+              nodeStrength: strengthConsts[content.message.position_tree.nodes.length < 20 ? 1 : 0],
+              nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
+              with_markers: false
+            }
+          ))
+
+          while (this.props.permission_dag_svg.current.children.length > 0) {
+            this.props.permission_dag_svg.current.removeChild(this.props.permission_dag_svg.current.children[0])
+          }
+          this.props.permission_dag_svg.current.appendChild(ForceGraph((content.message.permission_dag)
+            , {
+              nodeId: d => d.id,
+              withText: content.message.permission_dag.nodes.length < 20,
+              nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+              nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+              nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"],
+              with_markers: withMarkersForPermissions
+            }
+          ))
+
+          while (this.props.location_permission_dag_svg.current.children.length > 0) {
+            this.props.location_permission_dag_svg.current.removeChild(this.props.location_permission_dag_svg.current.children[0])
+          }
+          this.props.location_permission_dag_svg.current.appendChild(ForceGraph(onlyLocationDag((content.message.permission_dag))
+            , {
+              nodeId: d => d.id,
+              withText: content.message.permission_dag.nodes.length < 20,
+              nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+              nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+              nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              with_markers: withMarkersForPermissions,
+              nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+            }
+          ))
+
+          while (this.props.attribute_permission_dag_svg.current.children.length > 0) {
+            this.props.attribute_permission_dag_svg.current.removeChild(this.props.attribute_permission_dag_svg.current.children[0])
+          }
+          this.props.attribute_permission_dag_svg.current.appendChild(ForceGraph(onlyAttributeDag((content.message.permission_dag))
+            , {
+              nodeId: d => d.id,
+              withText: content.message.permission_dag.nodes.length < 20,
+              nodeGroup: d => { if (d.group == 'agent') { return 'operator' } else if (d.group == 'resource_handler') { return 'organisation' } else if (d.group == 'resource') { return 'location' } else if (d.group == 'attribute_handler') { return 'attribute_maintainer' } else return d.group },
+              nodeTitle: d => `${this.nameOfAdress(d.id)}\n${d.group}`,
+              nodeRadius: nodeRadiusConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              nodeStrength: strengthConsts[content.message.permission_dag.nodes.length < 20 ? 1 : 0],
+              with_markers: withMarkersForPermissions,
+              nodeGroups: ["operator", "organisation", "attribute", "attribute_maintainer", "location"]
+            }
+          ))
         }
-      ))
+      } else {
+        alert("Error while parsing token: " + content1.error.split(' ')[6])
+      }
     })();
     // return response.json(); // parses JSON response into native JavaScript objects
     //   alert('Commands submitted ' + this.state.value);
@@ -314,12 +370,14 @@ class EssayForm extends React.Component {
 
   render() {
     return (
+
       <form onSubmit={this.handleSubmit}>
         <label>
 
           <textarea id="commandInput" value={this.state.value} onChange={this.handleChange} rows={10} style={{ width: 500 }} />        </label>
         <input id="commandSubmit" type="submit" value="Submit" />
       </form>
+
     );
   }
 }
@@ -327,21 +385,22 @@ class EssayForm extends React.Component {
 class Wallet extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { accounts: [], authenticated: false };
+    this.state = { accounts: [], authenticated: false, showingDocuments: false };
     this.authenticate = this.authenticate.bind(this);
     this.updateAccounts = this.updateAccounts.bind(this);
+    this.toggleDocuments = this.toggleDocuments.bind(this);
   }
   componentDidMount() {
     if (window.sessionStorage.getItem("authenticated") === 'true') {
       let accounts = [];
-      if (secureLocalStorage.getItem('accounts')) {
-        accounts = secureLocalStorage.getItem('accounts')
+      if (getProtectedItem('accounts')) {
+        accounts = getProtectedItem('accounts')
       }
-      this.setState({ accounts: accounts, authenticated: true })
+      this.setState({ ...this.state, accounts: accounts, authenticated: true })
     }
   }
   authenticate() {
-    this.setState({ ...this.state, authenticated: true })
+    this.setState({ ...this.state, accounts: getProtectedItem('accounts'), authenticated: true })
   }
 
   updateAccounts(accounts) {
@@ -349,12 +408,16 @@ class Wallet extends React.Component {
   }
 
   accountExists() {
-    let password_hash = secureLocalStorage.getItem("password_hash")
-    if (password_hash == null || password_hash === '') {
+    let accountExists = secureLocalStorage.getItem("accountExists")
+    if (!accountExists) {
       return false
     } else {
       return true
     }
+  }
+
+  toggleDocuments() {
+    this.setState({ ...this.state, showingDocuments: !this.state.showingDocuments })
   }
 
   render() {
@@ -376,7 +439,11 @@ class Wallet extends React.Component {
       return (
         <div>
           <RestoreKeyRow updateAccounts={this.updateAccounts} />
-          <AddressList accounts={this.state.accounts} />
+          <button type="button" onClick={this.toggleDocuments}>
+            {this.state.showingDocuments ? "show keys" : "show documents"}
+          </button>
+          {this.state.showingDocuments ? <DocumentTable documents={this.props.documents} /> :
+            <AddressList accounts={this.state.accounts} />}
           <AddNewKeyRow updateAccounts={this.updateAccounts} />
         </div>
       )
@@ -403,6 +470,57 @@ class AddressList extends React.Component {
   }
 }
 
+class DocumentTable extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {};
+  }
+
+  downloadSignature(data) {
+    const toDownload = `data:text/json;chatset=utf-8,${encodeURIComponent(
+      JSON.stringify(data)
+    )}`;
+    const holder = document.createElement("a");
+    holder.href = toDownload;
+    holder.download = "signature.json";
+
+    holder.click();
+  };
+
+  trimLongWords(text) {
+    let words = text.split(" ")
+    for (let i = 0; i < words.length; ++i) {
+      if (words[i].length > 20) {
+        words[i] = words[i].slice(0, 19) + "..."
+      }
+    }
+    return words.join(" ")
+  }
+
+  render() {
+    const documents = this.props.documents;
+
+    return (
+      <table>
+        <tr>
+          <th>Commands</th>
+          <th>Signed by</th>
+          <th>Signature</th>
+        </tr>
+        {documents.map((val, key) => {
+          return (
+            <tr key={key}>
+              <td style={{ fontSize: 10 }}>{this.trimLongWords(val.commands)}</td>
+              <td style={{ fontSize: 10 }}>{this.trimLongWords(val.signedBy)}</td>
+              <td><button type="button" onClick={() => this.downloadSignature(val)}> Download </button></td>
+            </tr>
+          )
+        })}
+      </table>
+    );
+  }
+}
+
 class LoginWindow extends React.Component {
   constructor(props) {
     super(props);
@@ -414,8 +532,8 @@ class LoginWindow extends React.Component {
   handleSubmit(event) {
     const salt = secureLocalStorage.getItem("salt");
     const hashedPassword = CryptoJS.SHA3(this.state.value + salt);
-    const actualHashedPassword = secureLocalStorage.getItem("password_hash");
-    if (actualHashedPassword === hashedPassword) {
+    // const actualHashedPassword = secureLocalStorage.getItem("password_hash");
+    if (!(secureLocalStorage.getItem(hashedPassword) === null)) {
       window.sessionStorage.setItem("authenticated", 'true')
       window.sessionStorage.setItem("password", this.state.value)
       this.props.authenticate()
@@ -448,10 +566,14 @@ class RegisterWindow extends React.Component {
   }
   handleChange(event) { this.setState({ value: event.target.value }); }
   handleSubmit(event) {
-    const salt = generateSalt(10)
-    secureLocalStorage.setItem("salt", salt)
+    if (secureLocalStorage.getItem("salt") === null) {
+      const newSalt = generateSalt(10)
+      secureLocalStorage.setItem("salt", newSalt)
+    }
+    let salt = secureLocalStorage.getItem("salt")
+    secureLocalStorage.setItem('accountExists', true)
     const hashedPassword = CryptoJS.SHA3(this.state.value + salt)
-    secureLocalStorage.setItem("password_hash", hashedPassword)
+    secureLocalStorage.setItem(hashedPassword, true)
     window.sessionStorage.setItem("authenticated", 'true')
     window.sessionStorage.setItem("password", this.state.value)
     this.props.authenticate();
@@ -499,15 +621,15 @@ class RestoreKeyRow extends React.Component {
     (async () => {
       let password = window.sessionStorage.getItem('password')
       const mnemonic = this.state.mnemonic
-
+      let password_hash = passwordHash(password)
       let key = this.getHdRootKey(mnemonicToEntropy(mnemonic, wordlist));
       let encryptedKey1 = await getEncryptedKey(mnemonicToEntropy(mnemonic, wordlist))
-      secureLocalStorage.setItem("master_key", key2hex(encryptedKey1))
+      secureLocalStorage.setItem("master_key" + password_hash, key2hex(encryptedKey1))
       let privateKey = this.generatePrivateKey(key, 0);
       let publicKey = getPublicKey(privateKey);
       let privateKeyEncrypted = await getEncryptedKey(privateKey)
       let account = { name: this.state.name, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
-      secureLocalStorage.setItem("accounts", [account])
+      secureLocalStorage.setItem("accounts" + password_hash, [account])
       this.props.updateAccounts([account]);
       event.preventDefault();
     })()
@@ -561,9 +683,10 @@ class AddNewKeyRow extends React.Component {
 
   handleSubmit(event) {
     (async () => {
-      let accountList = secureLocalStorage.getItem('accounts')
+      let accountList = getProtectedItem('accounts')
       console.log(accountList)
       let password = window.sessionStorage.getItem('password')
+      let password_hash = passwordHash(password)
       if (accountList === null || accountList.length === 0) {
         let mnemonic, entropy;
         ({ mnemonic, entropy } = this._generateMnemonic());
@@ -571,7 +694,7 @@ class AddNewKeyRow extends React.Component {
         console.log(key)
         let hdKeyExtended = entropy
         let encryptedKey = await getEncryptedKey(hdKeyExtended)
-        secureLocalStorage.setItem("master_key", key2hex(encryptedKey))
+        secureLocalStorage.setItem("master_key" + password_hash, key2hex(encryptedKey))
         let privateKey = this.generatePrivateKey(key, 0);
         let publicKey = getPublicKey(privateKey);
         console.log(privateKey)
@@ -579,12 +702,12 @@ class AddNewKeyRow extends React.Component {
         alert("This is your mnemonic:\n" + mnemonic + "\nNote it down and you will be able to recover your keys if you forget your password or change a device.")
         let privateKeyEncrypted = await getEncryptedKey(privateKey)
         let account = { name: this.state.value, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
-        secureLocalStorage.setItem("accounts", [account])
+        secureLocalStorage.setItem("accounts" + password_hash, [account])
         this.props.updateAccounts([account]);
       } else {
         console.log("key")
-        console.log(secureLocalStorage.getItem('master_key'))
-        let decryptedKey = await getDecryptedKey(hex2key(secureLocalStorage.getItem('master_key')))
+        console.log(getProtectedItem('master_key'))
+        let decryptedKey = await getDecryptedKey(hex2key(getProtectedItem('master_key')))
         let key = HDKey.fromMasterSeed(decryptedKey);
 
         console.log(key)
@@ -596,7 +719,7 @@ class AddNewKeyRow extends React.Component {
         let privateKeyEncrypted = await getEncryptedKey(privateKey)
         let account = { name: this.state.value, publicKey: bytesToHex(publicKey), privateKeyEncrypted: bytesToHex(privateKeyEncrypted) }
         accountList.push(account);
-        secureLocalStorage.setItem("accounts", accountList)
+        secureLocalStorage.setItem("accounts" + password_hash, accountList)
         this.props.updateAccounts(accountList);
       }
     })()
@@ -623,11 +746,14 @@ function App() {
   // let data1 = { nodes: [{ id: "Pembroke" }, { id: "Building A" }], links: [{ source: "Pembroke", target: "Building A" }] };
   // let data2 = { "id": "root", "children": [{ "id": "locationA", "children": [{ "id": "root#1", "children": [] }] }, { "id": "admin", "children": [] }] }
 
+  const [documents, setDocuments] = useState(secureLocalStorage.getItem("documents") ? secureLocalStorage.getItem("documents") : [])
 
   const position_tree_svg = React.useRef(null);
   const permission_dag_svg = React.useRef(null);
   const attribute_permission_dag_svg = React.useRef(null);
   const location_permission_dag_svg = React.useRef(null);
+
+  const updateDocs = () => { setDocuments(secureLocalStorage.getItem("documents") ? secureLocalStorage.getItem("documents") : []) }
 
   return (
     <div className="App">
@@ -636,11 +762,11 @@ function App() {
         <div style={{ display: "flex" }}>
           <div style={{ flex: 5 }}>
 
-            <EssayForm position_tree_svg={position_tree_svg} permission_dag_svg={permission_dag_svg} attribute_permission_dag_svg={attribute_permission_dag_svg} location_permission_dag_svg={location_permission_dag_svg} />
+            <EssayForm position_tree_svg={position_tree_svg} updateDocuments={updateDocs} permission_dag_svg={permission_dag_svg} attribute_permission_dag_svg={attribute_permission_dag_svg} location_permission_dag_svg={location_permission_dag_svg} />
           </div>
           <div style={{ flex: 5 }}>
 
-            <Wallet />
+            <Wallet documents={documents} />
           </div>
         </div>
         Position tree

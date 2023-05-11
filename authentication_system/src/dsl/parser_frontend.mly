@@ -12,7 +12,6 @@
     let get_system name = match Map.find (!system_table) name with 
         |Some system -> system 
         |None -> raise_s [%message "No system with that name in the table" (name:string) (system_table:System_new.t String.Map.t ref)]
-    let get_system_opt name = Map.find (!system_table) name 
     let update_selected_system system = update_system (!selected_system) system
     let get_selected_system () = get_system (!selected_system);;
 %}
@@ -45,13 +44,10 @@ init_line:
     CREATE SYSTEM ID AS ID  {
                                 let admin = System_new.Node.agent $5 in
                                 let system = System_new.create admin $3 in 
-                                match get_system_opt $3 with 
-                                |None ->
                                 let () = selected_system := $3 in 
                                 let () = update_system $3 system in 
                                 let () = selected_agent := admin in
                                 system
-                                |Some _-> raise_s [%message "This policy already exists!" ($3:string) (system_table:System_new.t String.Map.t ref)]
                             }
     |SELECT SYSTEM ID AS ID       {
                                 let () = selected_system := $3 in 
