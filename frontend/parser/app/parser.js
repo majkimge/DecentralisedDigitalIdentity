@@ -38,7 +38,7 @@ app.post('/check', async (req, res) => {
     console.log(req.body.signedCommands)
     console.log(req.body.publicKey)
 
-    await fs.promises.writeFile("/home/majkimge/Cambridge/DecentralisedDigitalIdentity/frontend/client/src/bin/commands", req.body.commands)
+    await fs.promises.writeFile("/home/majkimge/Cambridge/DecentralisedDigitalIdentity/frontend/parser/bin/commands", req.body.commands)
     const { stdout, stderr } = await exec_promise("dune exec -- ../bin/string_parser.exe")
     if (stdout) {
         console.log(`stderr: ${stdout}`);

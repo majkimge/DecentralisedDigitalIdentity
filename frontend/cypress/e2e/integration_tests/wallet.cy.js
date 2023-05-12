@@ -1,4 +1,4 @@
-describe('template spec', () => {
+describe('wallet tests', () => {
   it('passes', () => {
     cy.visit('localhost:3000')
   })
@@ -45,39 +45,5 @@ describe('template spec', () => {
   });
 
 
-  /* ==== Test Created with Cypress Studio ==== */
-  it('submit_commands', function () {
-    /* ==== Generated with Cypress Studio ==== */
-    cy.visit('localhost:3000');
-    cy.get('#passwordInput').clear('a');
-    cy.get('#passwordInput').type('abc');
-    cy.get('#passwordSubmit').click();
-    cy.get('#accountInput').clear('a');
-    cy.get('#accountInput').type('admin');
-    cy.get('#accountSubmit').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandSubmit').click();
-    /* ==== End Cypress Studio ==== */
-    /* ==== Generated with Cypress Studio ==== */
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get(':nth-child(1) > form > :nth-child(1) > input').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandSubmit').click();
-    /* ==== End Cypress Studio ==== */
-    /* ==== Generated with Cypress Studio ==== */
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get('#commandInput').click();
-    cy.get(':nth-child(1) > form > :nth-child(1) > input').click();
-    cy.get('#commandInput').clear();
-    cy.get('#commandInput').type('create system front_test as admin');
-    cy.get('#commandSubmit').click();
-    /* ==== End Cypress Studio ==== */
-  });
+
 })

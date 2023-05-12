@@ -10,6 +10,7 @@
 
 # production
 /build
+/frontend/cypress/videos
 
 # misc
 .DS_Store

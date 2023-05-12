@@ -5,7 +5,7 @@ let _ =
   let lexbuf =
     Lexing.from_channel
       (In_channel.create
-         "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/frontend/client/src/bin/commands")
+         "/home/majkimge/Cambridge/DecentralisedDigitalIdentity/frontend/parser/bin/commands")
   in
   let res_ref = ref false in
   try
