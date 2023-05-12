@@ -99,6 +99,8 @@ end
 
 type any_node = Any : ('a, 'c) Node.t -> any_node [@@deriving sexp_of]
 
+let node_to_any node = Any node
+
 let any_node_equal node1 node2 =
   match (node1, node2) with Any node1, Any node2 -> Node.equal node1 node2
 
@@ -315,6 +317,38 @@ module Position_tree = struct
         }
     in
     delete_helper root (ref String.Set.empty)
+
+  let trim t set =
+    let copy = !t in
+    let ref_copy = ref copy in
+    let visited = ref String.Set.empty in
+    let rec helper current_node =
+      match !current_node.node with
+      | Any node ->
+          if String.Set.mem !visited (Node.name node) then current_node
+          else
+            let () = visited := String.Set.add !visited (Node.name node) in
+            let curr_node =
+              ref
+                {
+                  !current_node with
+                  children =
+                    List.filter !current_node.children ~f:(fun node ->
+                        match !node.node with
+                        | Any node -> String.Set.mem set (Node.name node));
+                }
+            in
+            let curr_node =
+              ref
+                {
+                  !curr_node with
+                  children =
+                    List.map !curr_node.children ~f:(fun node -> helper node);
+                }
+            in
+            curr_node
+    in
+    helper ref_copy
 end
 
 module Permission_DAG = struct
@@ -685,6 +719,50 @@ module Permission_DAG = struct
                   ~node:(Any node : any_node)
                   ~dag:(to_string !t : string)])
     | Agent _ as node -> Some node
+
+  let reaching t node_p =
+    match find_node t node_p with
+    | Some node ->
+        let set = ref (String.Set.singleton (Node.name node_p)) in
+        let rec helper current_node =
+          List.iter current_node.nodes_from ~f:(fun parent ->
+              let parent_node = !parent in
+              match parent_node.node with
+              | Any node ->
+                  set := String.Set.add !set (Node.name node);
+                  helper parent_node)
+        in
+        helper !node;
+        !set
+    | None ->
+        raise_s
+          [%message
+            "Could not find handler in dag"
+              ~handler:(Any node_p : any_node)
+              ~dag:(to_string !t : string)]
+
+  let trim t set =
+    let copy = !t in
+    let rec helper current_node =
+      let new_node =
+        {
+          !current_node with
+          nodes_to =
+            List.filter !current_node.nodes_to ~f:(fun node_to ->
+                match !node_to.node with
+                | Any node_to -> String.Set.mem set (Node.name node_to));
+        }
+      in
+      ref { new_node with nodes_to = List.map new_node.nodes_to ~f:helper }
+    in
+    { root = helper copy.root; agents = List.map copy.agents ~f:helper }
+
+  let trim_list t nodes =
+    let set =
+      List.fold nodes ~init:String.Set.empty ~f:(fun set node ->
+          match node with Any node -> String.Set.union set (reaching t node))
+    in
+    trim t set
 
   let handler_parent_resource t handler =
     let node =
@@ -1134,3 +1212,18 @@ let to_json t =
       ("position_tree", Position_tree.to_json !(t.position_tree));
       ("permission_dag", Permission_DAG.to_json t.permission_dag);
     ]
+
+let trim t nodes =
+  let set =
+    List.fold nodes ~init:String.Set.empty ~f:(fun set node ->
+        match node with
+        | Any node ->
+            String.Set.union set
+              (Permission_DAG.reaching (ref t.permission_dag) node))
+  in
+
+  {
+    t with
+    permission_dag = Permission_DAG.trim_list (ref t.permission_dag) nodes;
+    position_tree = Position_tree.trim t.position_tree set;
+  }

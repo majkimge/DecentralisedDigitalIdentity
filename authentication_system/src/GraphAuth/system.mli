@@ -36,6 +36,10 @@ module Node : sig
     attribute_handler -> (attribute_handler, attribute_handler) t
 end
 
+type any_node
+
+val node_to_any : ('a, 'b) Node.t -> any_node
+
 type t [@@deriving sexp_of]
 
 val create : (Node.agent, Node.agent) Node.t -> string -> t
@@ -127,3 +131,4 @@ val get_attribute_handler_by_id :
   t -> Node.attribute_id -> Node.attribute_handler
 
 val to_json : t -> Yojson.t
+val trim : t -> any_node list -> t
