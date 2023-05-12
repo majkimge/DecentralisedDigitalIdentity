@@ -3,9 +3,6 @@ describe('wallet tests', () => {
     cy.visit('localhost:3000')
   })
 
-
-
-
   /* ==== Test Created with Cypress Studio ==== */
   it('add_accounts', function () {
     /* ==== Generated with Cypress Studio ==== */

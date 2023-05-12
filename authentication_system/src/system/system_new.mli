@@ -120,10 +120,6 @@ val revoke_automatic_permission :
 
 val move_agent :
   t -> agent:(Node.agent, Node.agent) Node.t -> to_:('a, 'b) Node.t -> t
-(*
-      val routes : t -> (Node.resource, Node.resource_handler) Node.t -> (Node.resource, Node.resource_handler) Node.t list list
-      val delete_resource : t -> (Node.resource, Node.resource_handler) Node.t -> t
-  *)
 
 val get_attribute_by_id : t -> Node.attribute_id -> Node.attribute
 

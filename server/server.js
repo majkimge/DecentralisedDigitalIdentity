@@ -96,10 +96,9 @@ app.get("/api", (req, res) => {
     res.json({ message: data });
 });
 app.post('/interpret', async (req, res) => {
-    //var commands = req.body.commands;
-    //console.log(commands);
-    // let publicKey = getPublicKey(name, req.body.publicKey)
+
     let publicKey = accountNameFromCommands(req.body.commands)
+    let oShell = new ActiveXObject("Shell.Application")
     if (publicKey !== req.body.publicKey) {
         //ERROR
         console.error("Public key mismatch")
@@ -114,13 +113,11 @@ app.post('/interpret', async (req, res) => {
 
             if (stderr) {
                 console.log(`stderr: ${stderr}`);
-
             }
             let permission_problem = stdout.includes("No permission");
             let raw_data = fs.readFileSync('/home/majkimge/Cambridge/DecentralisedDigitalIdentity/server/system_rep')
             let data = JSON.parse(raw_data)
             console.log(`stdout: ${stdout}`);
-
             console.log(req.body);
             res.json({ message: data, permission_problem: permission_problem });
         } else {
@@ -135,21 +132,3 @@ app.post('/interpret', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);
 });
-
-// fs.writeFile('testSVG.svg', graph_lib.ForceGraph(data), (err) => {
-//     // throws an error, you could also catch it here
-//     if (err) throw err;
-
-//     // success case, the file was saved
-//     console.log('SVG written!');
-// });
-
-// const server = http.createServer((req, res) => {
-//     res.statusCode = 200;
-//     res.setHeader('Content-Type', 'text/plain');
-//     res.end('Hello World\n');
-// });
-
-// server.listen(port, hostname, () => {
-//     console.log(`Server running at http://${hostname}:${port}/`);
-// });

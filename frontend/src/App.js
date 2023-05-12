@@ -156,8 +156,6 @@ class EssayForm extends React.Component {
     return lines.join("\n")
   }
 
-
-
   handleSubmit(event) {
     (async () => {
       let commands1 = this.state.value
@@ -741,8 +739,6 @@ class AddNewKeyRow extends React.Component {
 }
 
 function App() {
-  // let data1 = { nodes: [{ id: "Pembroke" }, { id: "Building A" }], links: [{ source: "Pembroke", target: "Building A" }] };
-  // let data2 = { "id": "root", "children": [{ "id": "locationA", "children": [{ "id": "root#1", "children": [] }] }, { "id": "admin", "children": [] }] }
 
   let documentsGet;
   try {

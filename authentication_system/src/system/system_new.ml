@@ -26,12 +26,6 @@ module Node = struct
   }
   [@@deriving compare, equal, sexp_of]
 
-  (* let attribute_condition_required attribute = Attribute_required attribute
-
-     let attribute_condition_and cond1 cond2 = And (cond1, cond2)
-
-     let attribute_condition_or cond1 cond2 = Or (cond1, cond2) *)
-
   type (_, _) t =
     | Agent : agent -> (agent, agent) t
     | Resource : resource -> (resource, resource_handler) t
@@ -115,13 +109,6 @@ let any_node_type_string node =
 
 let any_to_string node = any_node_type_string node ^ any_node_name node
 
-(* let any_is_maintainer node ~parent =
-   match (node, parent) with
-   | Any (Node.Attribute node), Any (Node.Agent parent) ->
-       let { Node.attribute_id = { maintainer; _ }; _ } = node in
-       String.equal maintainer parent
-   | _ -> false *)
-
 let any_node_id node count =
   match node with
   | Any node ->
@@ -147,13 +134,6 @@ let any_to_attribute = function
 let any_to_attribute_handler = function
   | Any (Attribute_handler node) -> node
   | _ -> raise_s [%message "This is not an attribute maintainer node"]
-
-(* let any_to_node : type a. any_node -> (a, c) Node.t = function
-   |Any (Agent node) -> Node.Agent node
-   |Any (Resource_handler node) -> Node.Resource_handler node
-   |Any (Resource node) -> Node.Resource node
-   |Any (Attribute node) -> Node.Attribute node
-   |Any (Attribute_handler node) -> Node.attribute_handler node *)
 
 type json_helper = { nodes : Yojson.t list; links : Yojson.t list }
 
@@ -354,13 +334,6 @@ module Permission_DAG = struct
       if String.Set.mem !visited (any_to_string current_node.node) then
         { nodes = []; links = [] }
       else
-        (* let () =
-             print_s
-               [%message
-                 (current_node.node : any_node)
-                   (List.map current_node.nodes_to ~f:(fun node -> !node.node)
-                     : any_node list)]
-           in *)
         let () =
           visited := String.Set.add !visited (any_to_string current_node.node)
         in
@@ -548,37 +521,6 @@ module Permission_DAG = struct
               attribute_handler_id_to_find
         | _ -> false)
 
-  (* let _find_attribute_by_id t attribute_id_to_find =
-     let rec find_helper current_node visited_nodes =
-       let { node; _ } = current_node in
-       if
-         List.exists !visited_nodes ~f:(fun visited_node ->
-             any_node_equal visited_node node)
-       then None
-       else
-         match node with
-         | Any
-             ( Attribute { attribute_id; _ }
-             | Any (Attribute_handler { attribute_handler_id; _ }) ) ->
-             if Node.equal_attribute_id attribute_id attribute_id_to_find then
-               Some (ref current_node)
-             else
-               let () = visited_nodes := node :: !visited_nodes in
-               let results =
-                 List.map current_node.nodes_to ~f:(fun node_ref ->
-                     find_helper !node_ref visited_nodes)
-               in
-               List.find results ~f:Option.is_some |> Option.join
-         | _ ->
-             let () = visited_nodes := node :: !visited_nodes in
-             let results =
-               List.map current_node.nodes_to ~f:(fun node_ref ->
-                   find_helper !node_ref visited_nodes)
-             in
-             List.find results ~f:Option.is_some |> Option.join
-     in
-     find_helper !(t.root) (ref []) *)
-
   let add_edge t (type a c) ~(from : (a, c) Node.t) (type b d)
       ~(to_ : (b, d) Node.t) =
     let from_ref = find_node t from in
@@ -708,24 +650,6 @@ module Permission_DAG = struct
               | Some par -> helper par
               | None -> None)
         in
-
-        (* match current_node.node with
-             | Any (Resource_handler resource_handler) ->
-                 Some (Node.Resource_handler resource_handler)
-             | Any (Resource _) ->
-                 (* print_s
-                    [%message
-                      "In node"
-                        (current_node.node : any_node)
-                        (List.map current_node.nodes_from ~f:(fun node -> !node.node)
-                          : any_node List.t)]; *)
-                 let results =
-                   List.map current_node.nodes_from ~f:(fun node_ref ->
-                       helper !node_ref)
-                 in
-                 List.find results ~f:Option.is_some |> Option.join
-             | _ -> None
-           in *)
         match find_node t node with
         | Some node_ref -> helper !node_ref
         | None ->
@@ -740,12 +664,6 @@ module Permission_DAG = struct
           | Any (Resource_handler resource_handler) ->
               Some (Node.Resource_handler resource_handler)
           | Any (Resource _) ->
-              (* print_s
-                 [%message
-                   "In node"
-                     (current_node.node : any_node)
-                     (List.map current_node.nodes_from ~f:(fun node -> !node.node)
-                       : any_node List.t)]; *)
               let results =
                 List.map current_node.nodes_from ~f:(fun node_ref ->
                     helper !node_ref)
@@ -1216,8 +1134,3 @@ let to_json t =
       ("position_tree", Position_tree.to_json !(t.position_tree));
       ("permission_dag", Permission_DAG.to_json t.permission_dag);
     ]
-
-(*
-    val routes : t -> (Node.resource, Node.resource_handler) Node.t -> (Node.resource, Node.resource_handler) Node.t list list
-    val delete_resource : t -> (Node.resource, Node.resource_handler) Node.t -> t
-     *)
