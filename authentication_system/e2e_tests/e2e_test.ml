@@ -7,7 +7,7 @@ let execute_commands commands =
     while true do
       let system = Parser.main Lexer.token lexbuf in
       print_endline
-        (Yojson.to_string (Authentication_system.System_new.to_json system))
+        (Yojson.to_string (Authentication_system.System.to_json system))
     done
   with exn ->
     let curr = lexbuf.Lexing.lex_curr_p in

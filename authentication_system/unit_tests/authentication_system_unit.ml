@@ -3,15 +3,15 @@ open Authentication_system
 
 let print_system system =
   print_endline
-    (Yojson.to_string (Authentication_system.System_new.to_json system))
+    (Yojson.to_string (Authentication_system.System.to_json system))
 
-let test_agent = System_new.Node.agent "test_agent"
-let test_agent2 = System_new.Node.agent "test_agent2"
-let test_system () = System_new.create test_agent "Test_system"
-let test_resource1 = System_new.Node.resource "test_resource1"
-let test_resource2 = System_new.Node.resource "test_resource2"
-let test_resource3 = System_new.Node.resource "test_resource3"
-let test_resource_handler = System_new.Node.resource_handler "test_resource_handler"
+let test_agent = System.Node.agent "test_agent"
+let test_agent2 = System.Node.agent "test_agent2"
+let test_system () = System.create test_agent "Test_system"
+let test_resource1 = System.Node.resource "test_resource1"
+let test_resource2 = System.Node.resource "test_resource2"
+let test_resource3 = System.Node.resource "test_resource3"
+let test_resource_handler = System.Node.resource_handler "test_resource_handler"
 
 let%expect_test "create test" =
   let system = test_system () in
@@ -22,15 +22,15 @@ let%expect_test "create test" =
 let%expect_test "add resource" =
   let system = test_system () in
   let system =
-    System_new.add_resource system test_resource1 ~parent:System_new.root_node
-      ~entrances:[ System_new.root_node ]
+    System.add_resource system test_resource1 ~parent:System.root_node
+      ~entrances:[ System.root_node ]
   in
   let system =
-    System_new.add_resource system test_resource2 ~parent:test_resource1
+    System.add_resource system test_resource2 ~parent:test_resource1
       ~entrances:[ test_resource1 ]
   in
   let system =
-    System_new.add_resource system test_resource3 ~parent:test_resource2
+    System.add_resource system test_resource3 ~parent:test_resource2
       ~entrances:[ test_resource1; test_resource2 ]
   in
   print_system system;
@@ -40,12 +40,12 @@ let%expect_test "add resource" =
 let%expect_test "add resource_handler" =
   let system = test_system () in
   let system =
-    System_new.add_resource_handler system ~resource_handler:test_resource_handler
-      ~parent:System_new.root_node ~maintainer:test_agent
+    System.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System.root_node ~maintainer:test_agent
   in
   let system =
-    System_new.add_resource system test_resource2 ~parent:test_resource_handler
-      ~entrances:[ System_new.root_node ]
+    System.add_resource system test_resource2 ~parent:test_resource_handler
+      ~entrances:[ System.root_node ]
   in
   print_system system;
   [%expect
@@ -53,33 +53,33 @@ let%expect_test "add resource_handler" =
 
 let%expect_test "add agent" =
   let system = test_system () in
-  let system = System_new.add_agent system ~agent:test_agent2 in
+  let system = System.add_agent system ~agent:test_agent2 in
   print_system system;
   [%expect
     {| {"position_tree":{"nodes":[{"id":"world","group":"resource","is_extension":false},{"id":"test_agent2","group":"agent","is_extension":false},{"id":"test_agent","group":"agent","is_extension":false}],"links":[{"source":"world","target":"test_agent2","type":"simple"},{"source":"world","target":"test_agent","type":"simple"}]},"permission_dag":{"nodes":[{"id":"test_agent","group":"agent","is_extension":false},{"id":"test_agent2","group":"agent","is_extension":false},{"id":"world","group":"resource","is_extension":false}],"links":[{"source":"test_agent","target":"world","type":"simple"},{"source":"test_agent2","target":"world","type":"simple"}]}} |}]
 
 let%expect_test "add attribute" =
   let system = test_system () in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute1 = System.Node.attribute "attribute1" Never in
   let attribute_handler =
-    System_new.Node.attribute_handler "attribute_handler" Never
+    System.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_handler_under_agent system
+    System.add_attribute_handler_under_agent system
       ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+    System.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
   let attr_ref =
-    System_new.get_attribute_by_id system
-      (System_new.Node.attribute_id "attribute1")
+    System.get_attribute_by_id system
+      (System.Node.attribute_id "attribute1")
   in
   let attribute2 =
-    System_new.Node.attribute "attribute2" (Attribute_required attr_ref)
+    System.Node.attribute "attribute2" (Attribute_required attr_ref)
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute2 ~attribute_handler
+    System.add_attribute system ~attribute:attribute2 ~attribute_handler
   in
   print_system system;
   [%expect
@@ -87,21 +87,21 @@ let%expect_test "add attribute" =
 
 let%expect_test "add permission" =
   let system = test_system () in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute1 = System.Node.attribute "attribute1" Never in
   let attribute_handler =
-    System_new.Node.attribute_handler "attribute_handler" Never
+    System.Node.attribute_handler "attribute_handler" Never
   in
 
   let system =
-    System_new.add_attribute_handler_under_agent system
+    System.add_attribute_handler_under_agent system
       ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+    System.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
 
   let system =
-    System_new.grant_attribute system ~agent:test_agent
+    System.grant_attribute system ~agent:test_agent
       ~from:test_agent ~to_:attribute1
   in
 
@@ -111,25 +111,25 @@ let%expect_test "add permission" =
 
 let%expect_test "delete permission" =
   let system = test_system () in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute1 = System.Node.attribute "attribute1" Never in
   let attribute_handler =
-    System_new.Node.attribute_handler "attribute_handler" Never
+    System.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_handler_under_agent system
+    System.add_attribute_handler_under_agent system
       ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+    System.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
 
   let system =
-    System_new.grant_attribute system ~agent:test_agent
+    System.grant_attribute system ~agent:test_agent
       ~from:test_agent ~to_:attribute1
   in
 
   let system =
-    System_new.revoke_attribute system ~agent:test_agent
+    System.revoke_attribute system ~agent:test_agent
       ~from:test_agent ~to_:attribute1
   in
 
@@ -140,35 +140,35 @@ let%expect_test "delete permission" =
 let%expect_test "move_agent_success" =
   let system = test_system () in
   let system =
-    System_new.add_resource_handler system ~resource_handler:test_resource_handler
-      ~parent:System_new.root_node ~maintainer:test_agent
+    System.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System.root_node ~maintainer:test_agent
   in
   let system =
-    System_new.add_resource system test_resource1 ~parent:test_resource_handler
-      ~entrances:[ System_new.root_node ]
+    System.add_resource system test_resource1 ~parent:test_resource_handler
+      ~entrances:[ System.root_node ]
   in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute1 = System.Node.attribute "attribute1" Never in
   let attribute_handler =
-    System_new.Node.attribute_handler "attribute_handler" Never
+    System.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_handler_under_agent system
+    System.add_attribute_handler_under_agent system
       ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+    System.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
 
   let system =
-    System_new.grant_attribute system ~agent:test_agent
+    System.grant_attribute system ~agent:test_agent
       ~from:test_agent ~to_:attribute1
   in
   let system =
-    System_new.automatic_permission system ~agent:test_agent
+    System.automatic_permission system ~agent:test_agent
       ~from:attribute1 ~to_:test_resource1
   in
   let system =
-    System_new.move_agent system ~agent:test_agent ~to_:test_resource1
+    System.move_agent system ~agent:test_agent ~to_:test_resource1
   in
 
   print_system system;
@@ -178,31 +178,31 @@ let%expect_test "move_agent_success" =
 let%expect_test "move_agent_fail" =
   let system = test_system () in
   let system =
-    System_new.add_resource_handler system ~resource_handler:test_resource_handler
-      ~parent:System_new.root_node ~maintainer:test_agent
+    System.add_resource_handler system ~resource_handler:test_resource_handler
+      ~parent:System.root_node ~maintainer:test_agent
   in
   let system =
-    System_new.add_resource system test_resource1 ~parent:test_resource_handler
-      ~entrances:[ System_new.root_node ]
+    System.add_resource system test_resource1 ~parent:test_resource_handler
+      ~entrances:[ System.root_node ]
   in
-  let attribute1 = System_new.Node.attribute "attribute1" Never in
+  let attribute1 = System.Node.attribute "attribute1" Never in
   let attribute_handler =
-    System_new.Node.attribute_handler "attribute_handler" Never
+    System.Node.attribute_handler "attribute_handler" Never
   in
   let system =
-    System_new.add_attribute_handler_under_agent system
+    System.add_attribute_handler_under_agent system
       ~agent:test_agent ~attribute_handler
   in
   let system =
-    System_new.add_attribute system ~attribute:attribute1 ~attribute_handler
+    System.add_attribute system ~attribute:attribute1 ~attribute_handler
   in
   let system =
-    System_new.automatic_permission system ~agent:test_agent
+    System.automatic_permission system ~agent:test_agent
       ~from:attribute1 ~to_:test_resource1
   in
   try
     let _system =
-      System_new.move_agent system ~agent:test_agent
+      System.move_agent system ~agent:test_agent
         ~to_:test_resource1
     in
     ()

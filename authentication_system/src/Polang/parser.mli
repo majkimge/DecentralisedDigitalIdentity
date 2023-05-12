@@ -29,4 +29,4 @@ type token =
   | EOF
 
 val main :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Authentication_system.System_new.t
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Authentication_system.System.t

@@ -11,7 +11,7 @@ let _ =
     while true do
       let system = Parser.main Lexer.token lexbuf in
       Yojson.to_file "system_rep"
-        (Authentication_system.System_new.to_json system);
+        (Authentication_system.System.to_json system);
       Out_channel.flush stdout
     done
   with exn ->
