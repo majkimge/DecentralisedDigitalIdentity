@@ -10,8 +10,6 @@ let _ =
   try
     while true do
       let system = Parser.main Lexer.token lexbuf in
-      (* print_string
-         (Yojson.to_string (Authentication_system.System_new.to_json system)); *)
       Yojson.to_file "system_rep"
         (Authentication_system.System_new.to_json system);
       Out_channel.flush stdout

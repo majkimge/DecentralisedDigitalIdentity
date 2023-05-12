@@ -19,20 +19,3 @@ let _ =
     let tok = Lexing.lexeme lexbuf in
     print_s
       [%message (exn : exn) (line : int) (cnum : int) tok (!res_ref : bool)]
-
-(* Pseudocode for lock:
-   onLockRead(lock, card){
-     let challengeValue = generateChallenge() in
-     let challengeResponse = challenge(challengeValue, card) in
-     if(authenticate(card.name, challengeValue, challengeResponse)) then
-       let name = card.name in
-       let commands = "select system {lock.system} as {name}
-                       move {name} to {lock.to}" in
-       let signedCommands = await requesSignedCommands(commands, card) in
-       if (verifySignature(signedCommands, commands, name)) then
-         let success, result = Authentication_system.execute ("move {name} to {lock.to} ")
-         if (success) then
-           Lock.open lock
-           System.broadcastCommands(commands, signedCommands, name)
-   }
-*)

@@ -26,8 +26,3 @@ module.exports = function (app) {
         })
     );
 }
-// const proxy = require('http-proxy-middleware');
-// module.exports = function (app) {
-//     app.use(proxy('/intepret', { target: 'http://localhost:3001/interpret' })),
-//         app.use(proxy('/check', { target: 'http://localhost:3003/check' }))
-// }

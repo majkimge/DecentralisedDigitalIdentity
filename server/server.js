@@ -98,7 +98,6 @@ app.get("/api", (req, res) => {
 app.post('/interpret', async (req, res) => {
 
     let publicKey = accountNameFromCommands(req.body.commands)
-    let oShell = new ActiveXObject("Shell.Application")
     if (publicKey !== req.body.publicKey) {
         //ERROR
         console.error("Public key mismatch")
